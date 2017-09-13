@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  This template deploys accustom using a function that will timeout before it completes.
+Resources:
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code: redact_testing.zip
+      Handler: redact_testing.handler
+      MemorySize: 256
+      Role: !GetAtt Role.Arn
+      Runtime: python3.7
+      Timeout: 40
+
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: invokeFunction
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:*
+                Resource: '*'
+Outputs:
+  FunctionArn:
+    Value: !GetAtt Function.Arn
+    Export:
+      Name: ST-Function

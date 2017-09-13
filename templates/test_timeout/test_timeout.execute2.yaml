@@ -1,0 +1,8 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  This template tests the deployed function and executes it. It should fail to complete in time and not timeout.
+Resources:
+  NoConnectExcecution:
+    Type: Custom::NoConnectFunction
+    Properties:
+      ServiceToken: !ImportValue ST-NoConnectFunction
