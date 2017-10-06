@@ -178,7 +178,7 @@ def rdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True)
     def resource_decorator_inner(func):
         @wraps(func)
         def resource_decorator_handler(event, context=None):
-            logger.info('Supported resource %s' % event['ResourceProperties'])
+            logger.info('Supported resource %s' % event['ResourceType'])
 
             # Set the Physical Resource ID to a randomly generated UUID if it is not present
             if genUUID and 'PhysicalResourceId' not in event:
