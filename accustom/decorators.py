@@ -6,6 +6,8 @@ functions.
 
 #Exceptions
 from .Exceptions import FailedToSendResponseException
+from .Exceptions import DataIsNotDictException
+from .Exceptions import InvalidResponseStatusException
 
 #Constants
 from .constants import RequestType
