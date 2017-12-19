@@ -1,14 +1,14 @@
 from distutils.core import setup
 setup(
     name = 'accustom',
-    version = '1.0.3',
+    version = '1.0.4',
     description = 'Custom resource library for AWS CloudFormation',
     long_description = 'Accustom is a library for responding to Custom Resources in AWS CloudFormation using the decorator pattern.',
     url = 'https://github.com/NightKhaos/accustom',
     author = 'Taylor Bertie',
     author_email = 'nightkhaos@gmail.com',
     license = 'MIT',
-    download_url = 'https://github.com/NightKhaos/accustom/archive/1.0.3.tar.gz',
+    download_url = 'https://github.com/NightKhaos/accustom/archive/1.0.4.tar.gz',
     keywords = ['cloudformation','lambda','custom','resource','decorator'],
     classifiers = [
         # How mature is this project? Common values are

@@ -95,7 +95,7 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False):
                     logger.debug(result.reason)
                 elif isinstance(result, dict):
                     result = ResponseObject(data=result)
-                elif isinstance(obj, six.string_types):
+                elif isinstance(result, six.string_types):
                     result = ResponseObject(data={'Return' : result})
                 elif result is None or result is True:
                     result = ResponseObject()
