@@ -41,6 +41,8 @@ It takes the following options:
 
 - `enforceUseOfClass` (Boolean) : When this is set to `True`, you must use a `ResponseObject`. This is implicitly set to true if no Lambda Context is provided.
 - `hideResourceDeleteFailure` (Boolean) : When this is set to `True` the function will return `SUCCESS` even on getting an Exception for `Delete` requests.
+- `redactProperties` (Dictionary of Lists) : For more details on how this works please see "Redacting Confidential Information From Logs"
+- `redactMode` (accustom.RedactMode) : For more details on how this works please see "Redacting Confidential Information"
 
 Without a `ResponseObject` the decorator will make the following assumptions:
 - if a Lambda Context is not passed, the function will return `FAILED` 
@@ -61,9 +63,9 @@ It takes the following option:
 The most useful of these options is `expectedProperties`. With it is possible to quickly define mandatory properties for your resource and fail if they are not included.
 
 ### `@accustom.sdecorator()`
-This decorator is just a combination of `@accustom.decorator()` and `@accustom.rdecorator()`. This allows you have a single, stand alone resource handler that has some defined properties and can automatically handle delete. The options available to it is the combination of both of the options available to the other two Decorators.
+This decorator is just a combination of `@accustom.decorator()` and `@accustom.rdecorator()`. This allows you have a single, stand alone resource handler that has some defined properties and can automatically handle delete. The options available to it is the combination of both of the options available to the other two Decorators, with the exception of `redactProperties` which takes a list instead of a dictionary. For more information on `redactProperties` see "Redacting Confidential Information From Logs".
 
-The only important note about combining these two decorators is that `hideResourceDeleteFailure` becomes redundant if `decoratorHandleDelete` is set to `True`.
+The other important note about combining these two decorators is that `hideResourceDeleteFailure` becomes redundant if `decoratorHandleDelete` is set to `True`.
 
 ## Response Function and Object
 The `cfnresponse()` function and the `ResponseObject` are convenience function for interacting with CloudFormation.
@@ -86,9 +88,15 @@ To construct a response object you can provide the following optional parameters
 - `physicalResourceId` (String) : Physical resource ID to be used in the response
 - `reason` (String) : Reason to pass back to CloudFormation in the response Object
 - `responseStatus` (accustom.Status): response Status to use in the response Object, defaults to `SUCCESS`
+- `squashPrintResponse` (Boolean) : In `DEBUG` logging the function will often print out the `Data` section of the response. If the `Data` contains confidential information you'll want to squash this output. This option, when set to `True`, will squash the output.
+
+## Redacting Confidential Information From Logs
+As you often pass confidential information like passwords and secrets in properties to Custom Resources, you may want to prevent certain properties from being printed to debug logs. To help with this we provide a functionality to either blacklist or whitelist Resource Properties.
+
+<< Documentation WIP >>
 
 ## Constants
-We provide two constants for ease of use:
+We provide there constants for ease of use:
 
 - Static value : how to access
 
@@ -100,6 +108,11 @@ We provide two constants for ease of use:
 - `Create` : `accustom.RequestType.CREATE`
 - `Update` : `accustom.RequestType.UPDATE`
 - `Delete` : `accustom.RequestType.DELETE`
+
+### `RedactMode`
+
+- Blacklisting : `accustom.RedactMode.BLACKLIST`
+- Whitelisting : `accustom.RedactMode.WHITELIST`
 
 ## How to Contribute
 Feel free to open issues, fork, or submit a pull request:

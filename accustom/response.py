@@ -21,7 +21,7 @@ from botocore.vendored import requests
 
 logger = logging.getLogger(__name__)
 
-def cfnresponse(event, responseStatus, responseReason=None, responseData=None, physicalResourceId=None, lambdaContext=None):
+def cfnresponse(event, responseStatus, responseReason=None, responseData=None, physicalResourceId=None, lambdaContext=None, squashPrintResponse=False):
     """Format and send CloudFormation Custom Resource Objects
 
     This section is derived off the cfnresponse source code provided by Amazon:
@@ -32,12 +32,13 @@ def cfnresponse(event, responseStatus, responseReason=None, responseData=None, p
 
     Args:
         event: A dict containing CloudFormation custom resource request field
-        responseStatus: Should have the value of 'SUCCESS' or 'FAILED'
-        resonseData: The response data to be passed to CloudFormation. If it contains ExceptionThrown 
+        responseStatus (Status.SUCCESS or Status.FAILED): Should have the value of 'SUCCESS' or 'FAILED'
+        resonseData (dict): The response data to be passed to CloudFormation. If it contains ExceptionThrown 
             on FAILED this is given as reason overriding responseReason.
-        responseReason: The reason for this result.
-        physicalResourceId: The PhysicalResourceID to be sent back to CloudFormation
-        lambdaConext: Can be used in lieu of a PhysicalResourceId to use the Lambda Context to derive an ID.
+        responseReason (str): The reason for this result.
+        physicalResourceId (str): The PhysicalResourceID to be sent back to CloudFormation
+        lambdaContext (context object): Can be used in lieu of a PhysicalResourceId to use the Lambda Context to derive an ID.
+        squashPrintResponse (boolean): When logging set to debug and this is set to False, it will print the response (defaults to False)
 
         Note that either physicalResourceId or lambdaContext must be defined, and physicalResourceId supersedes
         lambdaContext
@@ -88,8 +89,10 @@ def cfnresponse(event, responseStatus, responseReason=None, responseData=None, p
 
     json_responseBody = json.dumps(responseBody)
 
-    logger.info("Sending response to URL: %s" % responseUrl)
-    logger.debug("Response body:\n" + json_responseBody)
+    logger.info("Sending response to pre-signed URL.")
+    logger.debug("URL: %s" % responseUrl)
+    if logger.getEffectiveLevel() <= logging.DEBUG and not squashPrintResponse:
+        logger.debug("Response body:\n" + json_responseBody)
 
     headers = {
         'content-type' : '',
@@ -114,14 +117,15 @@ def cfnresponse(event, responseStatus, responseReason=None, responseData=None, p
 
 class ResponseObject(object):
     """Class that allows you to init a ResponseObject for easy function writing"""
-    def __init__(self,data=None,physicalResourceId=None,reason=None,responseStatus=Status.SUCCESS):
+    def __init__(self,data=None,physicalResourceId=None,reason=None,responseStatus=Status.SUCCESS,squashPrintResponse=False):
         """Init function for the class
 
         Args:
-            data: data to be passed in the response. Must be a dict if used
-            physicalResourceId: Physical resource ID to be used in the response
-            reason: Reason to pass back to CloudFormation in the response Object
-            responseStatus: response Status to use in the response Object, defaults to SUCCESS
+            data (dict): data to be passed in the response. Must be a dict if used
+            physicalResourceId (str): Physical resource ID to be used in the response
+            reason (str): Reason to pass back to CloudFormation in the response Object
+            responseStatus (Status.SUCCESS or Status.FAILED): response Status to use in the response Object, defaults to SUCCESS
+            squashPrintResponse (boolean): When logging set to debug and this is set to False, it will print the response (defaults to False)
 
         Raises:
             DataIsNotDictException
@@ -134,6 +138,7 @@ class ResponseObject(object):
         self.physicalResourceId = physicalResourceId
         self.reason = reason
         self.responseStatus = responseStatus
+        self.squashPrintResponse = squashPrintResponse
 
     def send(self, event, lambdaContext=None):
         """Send this CloudFormation Custom Resource Object
@@ -144,7 +149,6 @@ class ResponseObject(object):
         Args:
             event: A dict containing CloudFormation custom resource request field
             lambdaConext: Can be used in lieu of a PhysicalResourceId to use the Lambda Context to derive an ID.
-
 
             Note that either physicalResourceId in the object or lambdaContext must be defined, and physicalResourceId supersedes
             lambdaContext
@@ -158,7 +162,7 @@ class ResponseObject(object):
             DataIsNotDictException
             FailedToSendResponseException
         """
-        return cfnresponse(event, self.responseStatus, self.reason, self.data, self.physicalResourceId, lambdaContext)
+        return cfnresponse(event, self.responseStatus, self.reason, self.data, self.physicalResourceId, lambdaContext, self.squashPrintResponse)
 
     def __str__(self):
         return 'Response(Status=%s)' % self.responseStatus

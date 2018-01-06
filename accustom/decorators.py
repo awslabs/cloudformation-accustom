@@ -12,6 +12,7 @@ from .Exceptions import InvalidResponseStatusException
 #Constants
 from .constants import RequestType
 from .constants import Status
+from .constants import RedactMode
 
 # Required Libraries
 import logging
@@ -20,10 +21,11 @@ from functools import wraps
 from uuid import uuid4
 from .response import ResponseObject
 import six
+import re
 
 logger = logging.getLogger(__name__)
 
-def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False):
+def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProperties=None,redactMode=RedactMode.BLACKLIST):
     """Decorate a function to add exception handling and emit CloudFormation responses.
 
     Usage with Lambda:
@@ -44,9 +46,15 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False):
         ...     return r
 
     Args:
-        enforceUseOfClass: When true send a FAILED signal if a ResponseObject class is not utilised.
+        enforceUseOfClass (boolean): When true send a FAILED signal if a ResponseObject class is not utilised.
             This is implicitly set to true if no Lambda Context is provided.
-        hideResourceDeleteFailure: When true will return SUCCESS even on getting an Exception for DELETE requests.
+        hideResourceDeleteFailure (boolean): When true will return SUCCESS even on getting an Exception for DELETE requests.
+        redactProperties (dictionary of lists, regex as key, list of top level properties to redact): When provided and logging
+            set to debug in blacklist mode these properties will be replaced with the [REDACTED] string in the output when ResourceType
+            matches regex, or in whitelist mode these properties will be included and all other properties replaced with the [REDACTED]
+            string in the output when ResourceType matches regex
+        redactMode (RedactMode.BLACKLIST or RedactMode.WHITELIST): Determine if we should whitelist or blacklist resources, defaults to
+            blacklist
 
     Returns:
         The response object sent to CloudFormation
@@ -58,7 +66,52 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False):
         @wraps(func)
         def handler_wrapper(event, lambdaContext=None):
             logger.info('Request recieved, processing...')
-            logger.debug('Request Body:\n' + json.dumps(event))
+
+            # Debug Logging Handler
+            if logger.getEffectiveLevel() <= logging.DEBUG:
+                # Start with None to prevent copying unless it is needed
+                ec = event.copy()
+                if redactMode == RedactMode.BLACKLIST:
+                    if 'ResourceProperties' in ec: ec['ResourceProperties'] = ec['ResourceProperties'].copy()
+                    if 'OldResourceProperties' in ec: ec['OldResourceProperties'] = ec['OldResourceProperties'].copy()
+                elif redactMode == RedactMode.WHITELIST:
+                    if 'ResourceProperties' in ec: ec['ResourceProperties'] = {}
+                    if 'OldResourceProperties' in ec: ec['OldResourceProperties'] = {}
+                else:
+                    logger.warn('redactMode %s unsupported, not redacting properties' % redactMode)
+                    redactMode = RedactMode.UNSUPPORT
+
+                if redactMode != RedactMode.UNSUPPORT and redactedProperties is not None:
+                    if isinstance(redactedProperties, dict):
+                        for regex, iprops in redactedProperties.items():
+                            if isinstance(iprops, list):
+                                # Check if ResourceType matches regex
+                                if re.search(regex, event['ResourceType']) is not None:
+                                    # Go through the Properties looking to see if they're in the ResourceProperties or OldResourceProperties
+                                    for index, item in enumerate(iprops):
+                                        if redactMode == RedactMode.BLACKLIST:
+                                            if 'ResourceProperties' in ec and item in ec['ResourceProperties']: ec['ResourceProperties'][item] = '[REDACTED]'
+                                            if 'OldResourceProperties' in ec and item in ec['OldResourceProperties']: ec['OldResourceProperties'][item] = '[REDACTED]'
+                                        elif redactMode == RedactMode.WHITELIST:
+                                            if 'ResourceProperties' in ec and item in event['ResourceProperties'] : ec['ResourceProperties'][item] = event['ResourceProperties'][item]
+                                            if 'OldResourceProperties' in ec and item in event['OldResourceProperties'] : ec['OldResourceProperties'][item] = event['OldResourceProperties'][item]
+                            elif iprops is None:
+                                # Since the sdecorator will pass None here by default we don't want to error if this happens
+                                pass
+                            else:
+                                logger.warn('For regex %s a list was not provided, ignoring' % key)
+                    else:
+                        logger.warn('Provided redactedProperties was not of type dict, ignoring')
+
+                if redactMode == RedactMode.WHITELIST:
+                    if 'ResourceProperties' in ec:
+                        for key, value in event['ResourceProperties'].items():
+                            if key not in ec['ResourceProperties']: ec['ResourceProperties'][key] = '[REDACTED]'
+                    if 'OldResourceProperties' in ec:
+                        for key, value in event['OldResourceProperties'].items():
+                            if key not in ec['OldResourceProperties']: ec['OldResourceProperties'][key] = '[REDACTED]'
+
+                logger.debug('Request Body:\n' + json.dumps(ec))
 
             try:
                 # Run the function
@@ -108,7 +161,11 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False):
             # This block will hide resources on delete failure if the flag is set to true
             if event['RequestType'] == RequestType.DELETE and result.responseStatus == Status.FAILED and hideResourceDeleteFailure:
                     logger.warn('Hiding Resource DELETE request failure')
-                    if result.data is not None: logger.debug('Data:\n' + json.dumps(result.data))
+                    if result.data is not None:
+                        if not result.squashPrintResponse: 
+                            logger.debug('Data:\n' + json.dumps(result.data))
+                        else:
+                            logger.debug('Data: [REDACTED]')
                     if result.reason is not None: logger.debug('Reason: %s' % result.reason)
                     if result.physicalResourceId is not None: logger.debug('PhysicalResourceId: %s' % result.physicalResourceId)
                     result = ResponseObject(
@@ -122,7 +179,11 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False):
                 if isinstance(e, FailedToSendResponseException):
                     raise e
                 logger.error('Malformed request, Exception: %s' % str(e))
-                if result.data is not None and not isinstance(e, DataIsNotDictException): logger.debug('Data:\n' + json.dumps(result.data))
+                if result.data is not None and not isinstance(e, DataIsNotDictException):
+                        if not result.squashPrintResponse: 
+                            logger.debug('Data:\n' + json.dumps(result.data))
+                        else:
+                            logger.debug('Data: [REDACTED]')
                 if result.reason is not None: logger.debug('Reason: %s' % result.reason)
                 if result.physicalResourceId is not None: logger.debug('PhysicalResourceId: %s' % result.physicalResourceId)
                 if not isinstance(e, InvalidResponseStatusException): logger.debug('Status: %s' % result.responseStatus)
@@ -163,11 +224,11 @@ def rdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True)
             ...     return resource_function(event)
 
         Args:
-            decoratorHandleDelete: When set to true, if a delete request is made in event the decorator will
+            decoratorHandleDelete (boolean): When set to true, if a delete request is made in event the decorator will
                 return a ResponseObject with a with SUCCESS without actually executing the decorated function
-            genUUID: When set to true, if the PhysicalResourceId in the event is not set, automatically generate
+            genUUID (boolean): When set to true, if the PhysicalResourceId in the event is not set, automatically generate
                 a UUID4 and put it in the PhysicalResoruceId field.
-            expectedProperties: Pass in a list or tuple of properties that you want to check for before running
+            expectedProperties (list of expected properties): Pass in a list or tuple of properties that you want to check for before running
                 the decorated function.
 
         Returns:
@@ -209,7 +270,7 @@ def rdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True)
         return resource_decorator_handler
     return resource_decorator_inner
 
-def sdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True,enforceUseOfClass=False,hideResourceDeleteFailure=False):
+def sdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True,enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProperties=None,redactMode=RedactMode.BLACKLIST):
     """Decorate a function to add input validation for resource handler functions, exception handling and send
     CloudFormation responses.
 
@@ -232,16 +293,21 @@ def sdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True,
         ...     return r
 
     Args:
-        decoratorHandleDelete: When set to true, if a delete request is made in event the decorator will
+        decoratorHandleDelete (boolean): When set to true, if a delete request is made in event the decorator will
             return SUCCESS to CloudFormation without actually executing the decorated function
-        genUUID: When set to true, if the PhysicalResourceId in the event is not set, automatically generate
+        genUUID (boolean): When set to true, if the PhysicalResourceId in the event is not set, automatically generate
             a UUID4 and put it in the PhysicalResoruceId field.
-        expectedProperties: Pass in a list or tuple of properties that you want to check for before running
-            the decorated function.
-        enforceUseOfClass: When true send a FAILED signal if a ResponseObject class is not utilised.
+        expectedProperties (list of expected properties): Pass in a list or tuple of properties that you want to check for
+            before running the decorated function.
+        enforceUseOfClass (boolean): When true send a FAILED signal if a ResponseObject class is not utilised.
             This is implicitly set to true if no Lambda Context is provided.
-        hideResourceDeleteFailure: When true will return SUCCESS even on getting an Exception for DELETE requests.
+        hideResourceDeleteFailure (boolean): When true will return SUCCESS even on getting an Exception for DELETE requests.
             Note that this particular flag is made redundant if decoratorHandleDelete is set to True.
+        redactProperties (list of top level properties to redact): When provided and logging
+            set to debug these properties will be replaced with the [REDACTED] string in the output in blacklist mode, or these properties
+            will be included and all other properties will be replaced with the [REDACTED] string in the output.
+        redactMode (RedactMode.BLACKLIST or RedactMode.WHITELIST): Determine if we should whitelist or blacklist resources, defaults to
+            blacklist
 
     Returns:
         The response object sent to CloudFormation
@@ -252,7 +318,7 @@ def sdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True,
 
     def standalone_decorator_inner(func):
         @wraps(func)
-        @decorator(enforceUseOfClass=enforceUseOfClass,hideResourceDeleteFailure=hideResourceDeleteFailure)
+        @decorator(enforceUseOfClass=enforceUseOfClass,hideResourceDeleteFailure=hideResourceDeleteFailure,redactProperties={'^.*$' : redactProperties},redactMode=redactMode)
         @rdecorator(decoratorHandleDelete=decoratorHandleDelete,expectedProperties=expectedProperties,genUUID=genUUID)
         def standalone_decorator_handler(event, lambdaContext=None):
             return func(event, lambdaContext)
