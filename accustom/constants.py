@@ -20,3 +20,12 @@ class RequestType:
     UPDATE = 'Update'
     DELETE = 'Delete'
 
+class RedactMode:
+    """RedactMode Options"""
+
+    BLACKLIST = 'black'
+    WHITELIST = 'white'
+
+    # Hidden Internal Mode
+    UNSUPPORT = 'unsupported'
+
