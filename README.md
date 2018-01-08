@@ -100,7 +100,7 @@ To construct a response object you can provide the following optional parameters
 - `squashPrintResponse` (Boolean) : In `DEBUG` logging the function will often print out the `Data` section of the response. If the `Data` contains confidential information you'll want to squash this output. This option, when set to `True`, will squash the output.
 
 ## Redacting Confidential Information From Logs
-As you often pass confidential information like passwords and secrets in properties to Custom Resources, you may want to prevent certain properties from being printed to debug logs. To help with this we provide a functionality to either blacklist or whitelist Resource Properties.
+If you often pass confidential information like passwords and secrets in properties to Custom Resources, you may want to prevent certain properties from being printed to debug logs. To help with this we provide a functionality to either blacklist or whitelist Resource Properties.
 
 << Documentation WIP >>
 
