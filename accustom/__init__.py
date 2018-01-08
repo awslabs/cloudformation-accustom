@@ -1,6 +1,7 @@
 # Import classes, functions, and submodules to be accessible from library
 from .constants import Status
 from .constants import RequestType
+from .constants import RedactMode
 from .response import ResponseObject
 from .response import cfnresponse
 from .decorators import decorator
