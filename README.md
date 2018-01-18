@@ -43,6 +43,7 @@ It takes the following options:
 - `hideResourceDeleteFailure` (Boolean) : When this is set to `True` the function will return `SUCCESS` even on getting an Exception for `Delete` requests.
 - `redactProperties` (Dictionary of Lists) : For more details on how this works please see "Redacting Confidential Information From Logs"
 - `redactMode` (accustom.RedactMode) : For more details on how this works please see "Redacting Confidential Information"
+- `redactResponseURL` (Boolean) : For more details on how this works please see "Redacting Confidential Information"
 
 Without a `ResponseObject` the decorator will make the following assumptions:
 - if a Lambda Context is not passed, the function will return `FAILED` 
