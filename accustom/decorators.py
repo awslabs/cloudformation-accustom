@@ -25,7 +25,7 @@ import re
 
 logger = logging.getLogger(__name__)
 
-def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProperties=None,redactMode=RedactMode.BLACKLIST):
+def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProperties=None,redactMode=RedactMode.BLACKLIST,redactResponseURL=False):
     """Decorate a function to add exception handling and emit CloudFormation responses.
 
     Usage with Lambda:
@@ -55,6 +55,8 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProp
             string in the output when ResourceType matches regex
         redactMode (RedactMode.BLACKLIST or RedactMode.WHITELIST): Determine if we should whitelist or blacklist resources, defaults to
             blacklist
+        redactResponseURL (boolean): Prevents the pre-signed URL from being printed preventing out of band responses (recommended for
+            production)
 
     Returns:
         The response object sent to CloudFormation
@@ -68,6 +70,7 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProp
         def handler_wrapper(event, lambdaContext=None):
             nonlocal redactMode
             nonlocal redactProperties
+            nonlocal redactResponseURL
             logger.info('Request received, processing...')
 
             # Debug Logging Handler
@@ -112,6 +115,10 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProp
                     if 'OldResourceProperties' in ec:
                         for key, value in event['OldResourceProperties'].items():
                             if key not in ec['OldResourceProperties']: ec['OldResourceProperties'][key] = '[REDACTED]'
+
+                # Before printing we need to determine if we should keep the ResponseURL
+                if redactResponseURL:
+                    del ec['ResponseURL']
 
                 logger.debug('Request Body:\n' + json.dumps(ec))
 
@@ -272,7 +279,7 @@ def rdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True)
         return resource_decorator_handler
     return resource_decorator_inner
 
-def sdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True,enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProperties=None,redactMode=RedactMode.BLACKLIST):
+def sdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True,enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProperties=None,redactMode=RedactMode.BLACKLIST,redactResponseURL=False):
     """Decorate a function to add input validation for resource handler functions, exception handling and send
     CloudFormation responses.
 
@@ -310,6 +317,8 @@ def sdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True,
             will be included and all other properties will be replaced with the [REDACTED] string in the output.
         redactMode (RedactMode.BLACKLIST or RedactMode.WHITELIST): Determine if we should whitelist or blacklist resources, defaults to
             blacklist
+        redactResponseURL (boolean): Prevents the pre-signed URL from being printed preventing out of band responses (recommended for
+            production)
 
     Returns:
         The response object sent to CloudFormation
@@ -320,7 +329,7 @@ def sdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True,
 
     def standalone_decorator_inner(func):
         @wraps(func)
-        @decorator(enforceUseOfClass=enforceUseOfClass,hideResourceDeleteFailure=hideResourceDeleteFailure,redactProperties={'^.*$' : redactProperties},redactMode=redactMode)
+        @decorator(enforceUseOfClass=enforceUseOfClass,hideResourceDeleteFailure=hideResourceDeleteFailure,redactProperties={'^.*$' : redactProperties},redactMode=redactMode,redactResponseURL=redactResponseURL)
         @rdecorator(decoratorHandleDelete=decoratorHandleDelete,expectedProperties=expectedProperties,genUUID=genUUID)
         def standalone_decorator_handler(event, lambdaContext=None):
             return func(event, lambdaContext)
