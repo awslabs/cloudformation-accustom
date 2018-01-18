@@ -61,15 +61,17 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProp
 
     Raises:
          FailedToSendResponseException
+
     """
     def inner_decorator(func):
         @wraps(func)
         def handler_wrapper(event, lambdaContext=None):
-            logger.info('Request recieved, processing...')
+            nonlocal redactMode
+            nonlocal redactProperties
+            logger.info('Request received, processing...')
 
             # Debug Logging Handler
             if logger.getEffectiveLevel() <= logging.DEBUG:
-                # Start with None to prevent copying unless it is needed
                 ec = event.copy()
                 if redactMode == RedactMode.BLACKLIST:
                     if 'ResourceProperties' in ec: ec['ResourceProperties'] = ec['ResourceProperties'].copy()
@@ -81,9 +83,9 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProp
                     logger.warn('redactMode %s unsupported, not redacting properties' % redactMode)
                     redactMode = RedactMode.UNSUPPORT
 
-                if redactMode != RedactMode.UNSUPPORT and redactedProperties is not None:
-                    if isinstance(redactedProperties, dict):
-                        for regex, iprops in redactedProperties.items():
+                if redactMode != RedactMode.UNSUPPORT and redactProperties is not None:
+                    if isinstance(redactProperties, dict):
+                        for regex, iprops in redactProperties.items():
                             if isinstance(iprops, list):
                                 # Check if ResourceType matches regex
                                 if re.search(regex, event['ResourceType']) is not None:
@@ -101,7 +103,7 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProp
                             else:
                                 logger.warn('For regex %s a list was not provided, ignoring' % key)
                     else:
-                        logger.warn('Provided redactedProperties was not of type dict, ignoring')
+                        logger.warn('Provided redactProperties was not of type dict, ignoring')
 
                 if redactMode == RedactMode.WHITELIST:
                     if 'ResourceProperties' in ec:
