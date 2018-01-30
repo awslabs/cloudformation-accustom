@@ -102,7 +102,7 @@ def cfnresponse(event, responseStatus, responseReason=None, responseData=None, p
     }
 
 
-    # Flush the buffers to attempt tp prevent log truncations when resource is deleted
+    # Flush the buffers to attempt to prevent log truncations when resource is deleted
     # by stack in next action
     sys.stdout.flush() # Flush stdout buffer
     sys.stderr.flush() # Flush stderr buffer
