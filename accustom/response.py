@@ -38,7 +38,8 @@ def cfnresponse(event, responseStatus, responseReason=None, responseData=None, p
         responseReason (str): The reason for this result.
         physicalResourceId (str): The PhysicalResourceID to be sent back to CloudFormation
         lambdaContext (context object): Can be used in lieu of a PhysicalResourceId to use the Lambda Context to derive an ID.
-        squashPrintResponse (boolean): When logging set to debug and this is set to False, it will print the response (defaults to False)
+        squashPrintResponse (boolean): When logging set to debug and this is set to False, it will print the response (defaults to False).
+            If set to True this will also send the response with NoEcho set to True.
 
         Note that either physicalResourceId or lambdaContext must be defined, and physicalResourceId supersedes
         lambdaContext
@@ -86,6 +87,7 @@ def cfnresponse(event, responseStatus, responseReason=None, responseData=None, p
     responseBody['RequestId'] = event['RequestId']
     responseBody['LogicalResourceId'] = event['LogicalResourceId']
     responseBody['Data'] = responseData if responseData is not None else {'Placeholder':'No data provided'}
+    responseBody['NoEcho'] = squashPrintResponse
 
     json_responseBody = json.dumps(responseBody)
 
@@ -137,6 +139,7 @@ class ResponseObject(object):
             reason (str): Reason to pass back to CloudFormation in the response Object
             responseStatus (Status.SUCCESS or Status.FAILED): response Status to use in the response Object, defaults to SUCCESS
             squashPrintResponse (boolean): When logging set to debug and this is set to False, it will print the response (defaults to False)
+                If set to True it will also be sent with NoEcho set to true.
 
         Raises:
             DataIsNotDictException
