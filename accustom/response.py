@@ -87,7 +87,7 @@ def cfnresponse(event, responseStatus, responseReason=None, responseData=None, p
     responseBody['RequestId'] = event['RequestId']
     responseBody['LogicalResourceId'] = event['LogicalResourceId']
     responseBody['Data'] = responseData if responseData is not None else {'Placeholder':'No data provided'}
-    responseBody['NoEcho'] = squashPrintResponse
+    if squashPrintResponse: responseBody['NoEcho'] = 'true'
 
     json_responseBody = json.dumps(responseBody)
 
