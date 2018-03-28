@@ -55,7 +55,6 @@ It takes the following options:
 - `redactResponseURL` (Boolean) : For more details on how this works please see "Redacting Confidential Information"
 - `timeoutFunction` (Boolean): Will automatically send a failure signal to CloudFormation approximately 1 second before Lambda timeout provided that this function is executed in Lambda
 
-
 Without a `ResponseObject` the decorator will make the following assumptions:
 - if a Lambda Context is not passed, the function will return `FAILED` 
 - if a dictionary is passed back, this will be used for the Data to be returned to CloudFormation and the function will return `SUCCESS`.
@@ -106,6 +105,10 @@ To construct a response object you can provide the following optional parameters
 If you often pass confidential information like passwords and secrets in properties to Custom Resources, you may want to prevent certain properties from being printed to debug logs. To help with this we provide a functionality to either blacklist or whitelist Resource Properties based upon provided regular expressions.
 
 << Documentation WIP >>
+
+## Notes on process signals
+
+If you're using the automatic timeout function be aware that this library uses the SIGALRM signal as it was the easiest way to implement this. If you wish to use SIGALRM for your own purposes, please do not use the timeout function of this library.
 
 ## Constants
 We provide there constants for ease of use:
