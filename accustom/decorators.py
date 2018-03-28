@@ -22,10 +22,28 @@ from uuid import uuid4
 from .response import ResponseObject
 import six
 import re
+import sys
+import signal
 
 logger = logging.getLogger(__name__)
 
-def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProperties=None,redactMode=RedactMode.BLACKLIST,redactResponseURL=False):
+# Time in milliseconds to set the alarm for (in milliseconds)
+TIMEOUT_THRESHOLD = 1500
+BITSHIFT_1024 = 10
+
+def timeout_closure(failure_response,exit_code=0):
+    """ This function is added for timeout logic to prevent the Lambda Function from timing out and not responding back to CloudFormation
+
+        When enabled, this function will be called via an alarm 1 second before the lambda context ends    
+    """
+
+    def timeout_handler():
+        logger.error("The lambda context is about to die, sending failure response to CloudFormation")
+        failure_response.send()
+        sys.exit(exit_code)
+    return timeout_handler
+
+def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProperties=None,redactMode=RedactMode.BLACKLIST,redactResponseURL=False,timeoutFunction=True):
     """Decorate a function to add exception handling and emit CloudFormation responses.
 
     Usage with Lambda:
@@ -49,14 +67,15 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProp
         enforceUseOfClass (boolean): When true send a FAILED signal if a ResponseObject class is not utilised.
             This is implicitly set to true if no Lambda Context is provided.
         hideResourceDeleteFailure (boolean): When true will return SUCCESS even on getting an Exception for DELETE requests.
-        redactProperties (dictionary of lists, regex as key, list of top level properties to redact): When provided and logging
-            set to debug in blacklist mode these properties will be replaced with the [REDACTED] string in the output when ResourceType
-            matches regex, or in whitelist mode these properties will be included and all other properties replaced with the [REDACTED]
-            string in the output when ResourceType matches regex
+        redactProperties (dictionary of lists, resource regex as key, list of top level properties regexs to redact): When provided and logging
+            set to debug; in blacklist mode properties matching the properties regex will be replaced with the [REDACTED] string in the output when ResourceType
+            matches resource regex; or in whitelist mode properties matching the properties regex will be included and all other properties replaced with the [REDACTED]
+            string in the output when ResourceType matches the resoruce regex
         redactMode (RedactMode.BLACKLIST or RedactMode.WHITELIST): Determine if we should whitelist or blacklist resources, defaults to
             blacklist
         redactResponseURL (boolean): Prevents the pre-signed URL from being printed preventing out of band responses (recommended for
             production)
+        timeoutFunction (boolean): Will automatically send a failure signal to CloudFormation 1 second before Lambda timeout provided that this function is executed in Lambda
 
     Returns:
         The response object sent to CloudFormation
@@ -71,7 +90,21 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProp
             nonlocal redactMode
             nonlocal redactProperties
             nonlocal redactResponseURL
+            nonlocal timeoutFunction
             logger.info('Request received, processing...')
+
+            # Timeout Function Handler
+            if lambdaContext and timeoutFunction:
+                # Create a failure response for timeout
+                failure_response = ResponseObject(reason='Lambda function timed out, returning failure.', responseStatus=Status.FAILED)
+                # Set the handler to execute on SIGALRM
+                signal.signal(signal.SIGALRM, timeout_closure(failure_response))
+                # Get remaining time in milliseconds and subtract approximately 1 second
+                timeout_in_milli = lambdaContext.get_remaining_time_in_millis() - TIMEOUT_THRESHOLD
+                # In order to reduce the time of this operation to increase accuracy and also implicitly floor the value we will be using bit shifts
+                # Note that this is an approximation, however in the worst case (5 minutes remaining) it will translate to only a loss of 8 seconds
+                signal.alarm(timeout_in_milli >> BITSHIFT_1024)
+                #signal.alarm(int(timeout_in_million / 1000))
 
             # Debug Logging Handler
             if logger.getEffectiveLevel() <= logging.DEBUG:
@@ -95,11 +128,15 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProp
                                     # Go through the Properties looking to see if they're in the ResourceProperties or OldResourceProperties
                                     for index, item in enumerate(iprops):
                                         if redactMode == RedactMode.BLACKLIST:
-                                            if 'ResourceProperties' in ec and item in ec['ResourceProperties']: ec['ResourceProperties'][item] = '[REDACTED]'
-                                            if 'OldResourceProperties' in ec and item in ec['OldResourceProperties']: ec['OldResourceProperties'][item] = '[REDACTED]'
+                                            if 'ResourceProperties' in ec and re.search(item, ec['ResourceProperties']) is not None:
+                                                ec['ResourceProperties'][item] = '[REDACTED]'
+                                            if 'OldResourceProperties' in ec and re.search(item, ec['OldResourceProperties']) is not None:
+                                                ec['OldResourceProperties'][item] = '[REDACTED]'
                                         elif redactMode == RedactMode.WHITELIST:
-                                            if 'ResourceProperties' in ec and item in event['ResourceProperties'] : ec['ResourceProperties'][item] = event['ResourceProperties'][item]
-                                            if 'OldResourceProperties' in ec and item in event['OldResourceProperties'] : ec['OldResourceProperties'][item] = event['OldResourceProperties'][item]
+                                            if 'ResourceProperties' in ec and re.search(item, event['ResourceProperties']) is not None:
+                                                ec['ResourceProperties'][item] = event['ResourceProperties'][item]
+                                            if 'OldResourceProperties' in ec and re.search(item, event['OldResourceProperties']) is not None:
+                                                ec['OldResourceProperties'][item] = event['OldResourceProperties'][item]
                             elif iprops is None:
                                 # Since the sdecorator will pass None here by default we don't want to error if this happens
                                 pass
@@ -208,7 +245,6 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProp
 def rdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True):
     """Decorate a function to add input validation for resource handler functions.
 
-
         Usage with Lambda:
             >>> import accustom
             >>> @accustom.rdecorator(expectedProperties=['key1','key2'],genUUID=False)
@@ -279,7 +315,7 @@ def rdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True)
         return resource_decorator_handler
     return resource_decorator_inner
 
-def sdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True,enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProperties=None,redactMode=RedactMode.BLACKLIST,redactResponseURL=False):
+def sdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True,enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProperties=None,redactMode=RedactMode.BLACKLIST,redactResponseURL=False, timeoutFunction=True):
     """Decorate a function to add input validation for resource handler functions, exception handling and send
     CloudFormation responses.
 
@@ -312,13 +348,14 @@ def sdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True,
             This is implicitly set to true if no Lambda Context is provided.
         hideResourceDeleteFailure (boolean): When true will return SUCCESS even on getting an Exception for DELETE requests.
             Note that this particular flag is made redundant if decoratorHandleDelete is set to True.
-        redactProperties (list of top level properties to redact): When provided and logging
-            set to debug these properties will be replaced with the [REDACTED] string in the output in blacklist mode, or these properties
+        redactProperties (list of properties regexes to redact): When provided and logging set to debug; properties matching this regex
+            will be replaced with the [REDACTED] string in the output in blacklist mode; or these properties matching this regex
             will be included and all other properties will be replaced with the [REDACTED] string in the output.
         redactMode (RedactMode.BLACKLIST or RedactMode.WHITELIST): Determine if we should whitelist or blacklist resources, defaults to
             blacklist
         redactResponseURL (boolean): Prevents the pre-signed URL from being printed preventing out of band responses (recommended for
             production)
+        timeoutFunction (boolean): Will automatically send a failure signal to CloudFormation 1 second before Lambda timeout provided that this function is executed in Lambda
 
     Returns:
         The response object sent to CloudFormation
@@ -329,7 +366,7 @@ def sdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True,
 
     def standalone_decorator_inner(func):
         @wraps(func)
-        @decorator(enforceUseOfClass=enforceUseOfClass,hideResourceDeleteFailure=hideResourceDeleteFailure,redactProperties={'^.*$' : redactProperties},redactMode=redactMode,redactResponseURL=redactResponseURL)
+        @decorator(enforceUseOfClass=enforceUseOfClass,hideResourceDeleteFailure=hideResourceDeleteFailure,redactProperties={'^.*$' : redactProperties},redactMode=redactMode,redactResponseURL=redactResponseURL,timeoutFunction=timeoutFunction)
         @rdecorator(decoratorHandleDelete=decoratorHandleDelete,expectedProperties=expectedProperties,genUUID=genUUID)
         def standalone_decorator_handler(event, lambdaContext=None):
             return func(event, lambdaContext)
