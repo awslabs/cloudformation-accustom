@@ -106,9 +106,9 @@ If you often pass confidential information like passwords and secrets in propert
 
 << Documentation WIP >>
 
-## Notes on process signals
+## Note on Signals
 
-If you're using the automatic timeout function be aware that this library uses the SIGALRM signal as it was the easiest way to implement this. If you wish to use SIGALRM for your own purposes, please do not use the timeout function of this library.
+If you're using the `timeoutFunction` option be aware that this library uses the `SIGALRM` signal as it was the easiest way to implement this. If you wish to use `SIGALRM` for your own purposes, please do not use the timeout function of this library as they will conflict.
 
 ## Constants
 We provide there constants for ease of use:
