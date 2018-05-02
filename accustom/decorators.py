@@ -37,7 +37,7 @@ def timeout_closure(failure_response,exit_code=0):
         When enabled, this function will be called via an alarm 1 second before the lambda context ends    
     """
 
-    def timeout_handler():
+    def timeout_handler(signum, frame):
         logger.error("The lambda context is about to die, sending failure response to CloudFormation")
         failure_response.send()
         sys.exit(exit_code)
