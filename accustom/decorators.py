@@ -31,16 +31,18 @@ logger = logging.getLogger(__name__)
 TIMEOUT_THRESHOLD = 1500
 BITSHIFT_1024 = 10
 
-def timeout_closure(failure_response,exit_code=0):
+def timeout_closure(failure_response,event,context,exit_code=0):
     """ This function is added for timeout logic to prevent the Lambda Function from timing out and not responding back to CloudFormation
 
-        When enabled, this function will be called via an alarm 1 second before the lambda context ends    
+        When enabled, this function will be called via an alarm 1 second before the lambda context ends
     """
 
     def timeout_handler(signum, frame):
         logger.error("The lambda context is about to die, sending failure response to CloudFormation")
-        failure_response.send()
+        failure_response.send(event,context)
         sys.exit(exit_code)
+        ### NOTE: This will cause async invocations to be reinvoked on timeout.
+        ### TODO: Reimplement this logic where customer handler is run in child thread so that we can cleanly exit lambda context
     return timeout_handler
 
 def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProperties=None,redactMode=RedactMode.BLACKLIST,redactResponseURL=False,timeoutFunction=True):
@@ -98,7 +100,7 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProp
                 # Create a failure response for timeout
                 failure_response = ResponseObject(reason='Lambda function timed out, returning failure.', responseStatus=Status.FAILED)
                 # Set the handler to execute on SIGALRM
-                signal.signal(signal.SIGALRM, timeout_closure(failure_response))
+                signal.signal(signal.SIGALRM, timeout_closure(failure_response,event,lambdaContext))
                 # Get remaining time in milliseconds and subtract approximately 1 second
                 timeout_in_milli = lambdaContext.get_remaining_time_in_millis() - TIMEOUT_THRESHOLD
                 # In order to reduce the time of this operation to increase accuracy and also implicitly floor the value we will be using bit shifts
