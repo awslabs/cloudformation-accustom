@@ -106,6 +106,6 @@ class RedactionConfig(object):
 
 
 class StandaloneRedactionConfig(RedactionConfig):
-    def __init__(self,redactMode=RedactMode.BLACKLIST,redactResponseURL=False,ruleSet):
+    def __init__(self,ruleSet,redactMode=RedactMode.BLACKLIST,redactResponseURL=False):
         RedactionConfig.__init__(self,redactMode=redactMode,redactResponseURL=redactResponseURL)
         self.addRuleSet(ruleSet)
