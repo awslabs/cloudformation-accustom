@@ -14,6 +14,10 @@ from .constants import RequestType
 from .constants import Status
 from .constants import RedactMode
 
+#RedactionConfig
+from .redaction import RedactionConfig
+from .redaction import StandaloneRedactionConfig
+
 # Required Libraries
 import logging
 import json
@@ -31,7 +35,7 @@ logger = logging.getLogger(__name__)
 TIMEOUT_THRESHOLD = 4000
 BITSHIFT_1024 = 10
 
-def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProperties=None,redactMode=RedactMode.BLACKLIST,redactResponseURL=False,timeoutFunction=True):
+def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactConfig=None,timeoutFunction=False):
     """Decorate a function to add exception handling and emit CloudFormation responses.
 
     Usage with Lambda:
@@ -55,14 +59,7 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProp
         enforceUseOfClass (boolean): When true send a FAILED signal if a ResponseObject class is not utilised.
             This is implicitly set to true if no Lambda Context is provided.
         hideResourceDeleteFailure (boolean): When true will return SUCCESS even on getting an Exception for DELETE requests.
-        redactProperties (dictionary of lists, resource regex as key, list of top level properties regexs to redact): When provided and logging
-            set to debug; in blacklist mode properties matching the properties regex will be replaced with the [REDACTED] string in the output when ResourceType
-            matches resource regex; or in whitelist mode properties matching the properties regex will be included and all other properties replaced with the [REDACTED]
-            string in the output when ResourceType matches the resoruce regex
-        redactMode (RedactMode.BLACKLIST or RedactMode.WHITELIST): Determine if we should whitelist or blacklist resources, defaults to
-            blacklist
-        redactResponseURL (boolean): Prevents the pre-signed URL from being printed preventing out of band responses (recommended for
-            production)
+        redactConfig (RedactionConfig): Configuration of how to redact the event object.
         timeoutFunction (boolean): Will automatically send a failure signal to CloudFormation before Lambda timeout provided that this function is executed in Lambda
 
     Returns:
@@ -75,9 +72,7 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProp
     def inner_decorator(func):
         @wraps(func)
         def handler_wrapper(event, lambdaContext=None):
-            nonlocal redactMode
-            nonlocal redactProperties
-            nonlocal redactResponseURL
+            nonlocal redactConfig
             nonlocal timeoutFunction
             logger.info('Request received, processing...')
 
@@ -97,99 +92,53 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProp
 
                 # Normally we would just do a catch all error handler but in this case we want to be paranoid
                 try:
-                    response = bclient.invoke(FunctionName=lambdaContext.invoked_function_arn,InvocationType='RequestResponse',Payload=payload)
+                    response = blambda.invoke(FunctionName=lambdaContext.invoked_function_arn,InvocationType='RequestResponse',Payload=payload)
                 except (blcient.exceptions.EC2AccessDeniedException, bclient.exceptions.KMSAccessDeniedException, bclient.exceptions.KMSDisabledException) as e:
-                    logger.warn('Caught exception %s while trying to invoke function. Running handler locally.' % e)
+                    logger.warn('Caught exception %s while trying to invoke function. Running handler locally.' % str(e))
                     logger.warn('You cannot use the timeoutFunction option without the ability for the function to invoke itself. To suppress this warning, set timeoutFunction to False')
                 except (bclient.exceptions.EC2ThrottledException, bclient.exceptions.ENILimitReachedException, bclient.exceptions.TooManyRequestsException,
                         bclient.exceptions.SubnetIPAddressLimitReachedException) as e:
-                    logger.error('Caught exception %s while trying to invoke function. Running handler locally.' % e)
+                    logger.error('Caught exception %s while trying to invoke function. Running handler locally.' % str(e))
                     logger.error('You should make sure you have enough capacity and high enough limits to execute the chained function.')
                 except (bclient.exceptions.EC2UnexpectedException, bclient.exceptions.InvalidParameterValueException, bclient.exceptions.InvalidRequestContentException,
                         bclient.exceptions.InvalidRuntimeException, bclient.exceptions.InvalidSecurityGroupIDException, bclient.exceptions.InvalidSubnetIDException,
                         bclient.exceptions.InvalidZipFileException, blcient.exceptions.KMSInvalidStateException, bclient.exceptions/KMSNotFoundException,
                         bclient.exceptions.RequestTooLargeException, bclient.exceptions.ResourceNotFoundException, bclient.exceptions.ServiceException,
                         bclient.exceptions.UnsupportedMediaTypeException) as e:
-                    logger.error('Caught exception %s while trying to invoke function. Running handler locally.' % e)
+                    logger.error('Caught exception %s while trying to invoke function. Running handler locally.' % str(e))
                 except (requests.exceptions.ConnectionError) as e:
-                    logger.warn('Got error %s while trying to invoke function. Running handler locally' % e)
+                    logger.warn('Got error %s while trying to invoke function. Running handler locally' % str(e))
                     logger.warn('You cannot use the timeoutFunction option without the ability to connect to the Lambda API from within the function. To suppress this warning, set timeoutFunction to False')
                 except (requests.exceptions.ReadTimeout) as e:
                     # This should be a critical failure
                     logger.error('Waited the read timeout and function did not return, returning an error')
                     return ResponseObject(reason='Lambda function timed out, returning failure.', responseStatus=Status.FAILED).send(event,context)
-                else:
-                    message = 'Got an exception I did not understand while trying to invoke child function: %s' % e)
+                except Exception as e:
+                    message = 'Got an exception I did not understand while trying to invoke child function: %s' % str(e)
                     logger.error(message)
                     return ResponseObject(reason=message, responseStatus=Status.FAILED).send(event,context)
                 # Further checks
                 if 'FunctionError' in response:
-                    if 'Payload' in response:
-                        payload = response['Payload'].decode()
-                    else:
-                        payload = ''
+                    if 'Payload' in response: payload = response['Payload'].decode()
+                    else: payload = ''
                     message = 'Invocation got an error: %s' % payload
                     logger.error(message)
                     return ResponseObject(reason=message, responseStatus=Status.FAILED).send(event,context)
 
             # Debug Logging Handler
             if logger.getEffectiveLevel() <= logging.DEBUG:
-                ec = event.copy()
-                if redactMode == RedactMode.BLACKLIST:
-                    if 'ResourceProperties' in ec: ec['ResourceProperties'] = ec['ResourceProperties'].copy()
-                    if 'OldResourceProperties' in ec: ec['OldResourceProperties'] = ec['OldResourceProperties'].copy()
-                elif redactMode == RedactMode.WHITELIST:
-                    if 'ResourceProperties' in ec: ec['ResourceProperties'] = {}
-                    if 'OldResourceProperties' in ec: ec['OldResourceProperties'] = {}
+                if redactConfig is not None and isinstance(redactConfig,(StandaloneRedactionConfig,RedactionConfig)):
+                    logger.debug('Request Body:\n' + json.dumps(redactConfig._redact(event)))
+                elif redactConfig is not None:
+                    logger.warn('A non valid RedactionConfig was provided, and ignored')
+                    logger.debug('Request Body:\n' + json.dumps(event))
                 else:
-                    logger.warn('redactMode %s unsupported, not redacting properties' % redactMode)
-                    redactMode = RedactMode.UNSUPPORT
-                if redactMode != RedactMode.UNSUPPORT and redactProperties is not None:
-                    if isinstance(redactProperties, dict):
-                        for regex, iprops in redactProperties.items():
-                            if isinstance(iprops, list):
-                                # Check if ResourceType matches regex
-                                if re.search(regex, event['ResourceType']) is not None:
-                                    # Go through the Properties looking to see if they're in the ResourceProperties or OldResourceProperties
-                                    for index, item in enumerate(iprops):
-                                        if redactMode == RedactMode.BLACKLIST:
-                                            if 'ResourceProperties' in ec and re.search(item, ec['ResourceProperties']) is not None:
-                                                ec['ResourceProperties'][item] = '[REDACTED]'
-                                            if 'OldResourceProperties' in ec and re.search(item, ec['OldResourceProperties']) is not None:
-                                                ec['OldResourceProperties'][item] = '[REDACTED]'
-                                        elif redactMode == RedactMode.WHITELIST:
-                                            if 'ResourceProperties' in ec and re.search(item, event['ResourceProperties']) is not None:
-                                                ec['ResourceProperties'][item] = event['ResourceProperties'][item]
-                                            if 'OldResourceProperties' in ec and re.search(item, event['OldResourceProperties']) is not None:
-                                                ec['OldResourceProperties'][item] = event['OldResourceProperties'][item]
-                            elif iprops is None:
-                                # Since the sdecorator will pass None here by default we don't want to error if this happens
-                                pass
-                            else:
-                                logger.warn('For regex %s a list was not provided, ignoring' % key)
-                    else:
-                        logger.warn('Provided redactProperties was not of type dict, ignoring')
-
-                if redactMode == RedactMode.WHITELIST:
-                    if 'ResourceProperties' in ec:
-                        for key, value in event['ResourceProperties'].items():
-                            if key not in ec['ResourceProperties']: ec['ResourceProperties'][key] = '[REDACTED]'
-                    if 'OldResourceProperties' in ec:
-                        for key, value in event['OldResourceProperties'].items():
-                            if key not in ec['OldResourceProperties']: ec['OldResourceProperties'][key] = '[REDACTED]'
-
-                # Before printing we need to determine if we should keep the ResponseURL
-                if redactResponseURL:
-                    del ec['ResponseURL']
-
-                logger.debug('Request Body:\n' + json.dumps(ec))
+                    logger.debug('Request Body:\n' + json.dumps(event))
 
             try:
                 # Run the function
-                if lambdaContext is not None:
-                    result = func(event, lambdaContext)
-                else:
-                    result = func(event)
+                if lambdaContext is not None: result = func(event, lambdaContext)
+                else: result = func(event)
 
             except Exception as e:
                 # If there was an exception thrown by the function, send a failure response
@@ -340,7 +289,7 @@ def rdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True)
         return resource_decorator_handler
     return resource_decorator_inner
 
-def sdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True,enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProperties=None,redactMode=RedactMode.BLACKLIST,redactResponseURL=False, timeoutFunction=True):
+def sdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True,enforceUseOfClass=False,hideResourceDeleteFailure=False,redactConfig=None, timeoutFunction=True):
     """Decorate a function to add input validation for resource handler functions, exception handling and send
     CloudFormation responses.
 
@@ -373,13 +322,7 @@ def sdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True,
             This is implicitly set to true if no Lambda Context is provided.
         hideResourceDeleteFailure (boolean): When true will return SUCCESS even on getting an Exception for DELETE requests.
             Note that this particular flag is made redundant if decoratorHandleDelete is set to True.
-        redactProperties (list of properties regexes to redact): When provided and logging set to debug; properties matching this regex
-            will be replaced with the [REDACTED] string in the output in blacklist mode; or these properties matching this regex
-            will be included and all other properties will be replaced with the [REDACTED] string in the output.
-        redactMode (RedactMode.BLACKLIST or RedactMode.WHITELIST): Determine if we should whitelist or blacklist resources, defaults to
-            blacklist
-        redactResponseURL (boolean): Prevents the pre-signed URL from being printed preventing out of band responses (recommended for
-            production)
+        redactConfig (StandaloneRedactionConfig): Configuration of how to redact the event object.
         timeoutFunction (boolean): Will automatically send a failure signal to CloudFormation 1 second before Lambda timeout provided that this function is executed in Lambda
 
     Returns:
@@ -388,10 +331,13 @@ def sdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True,
     Raises:
          FailedToSendResponseException
     """
+    if not isinstance(redactConfig,StandaloneRedactionConfig) and logger.getEffectiveLevel() <= logging.DEBUG:
+        logger.warn('A non valid StandaloneRedactionConfig was provided, and ignored')
+        redactConfig = None
 
     def standalone_decorator_inner(func):
         @wraps(func)
-        @decorator(enforceUseOfClass=enforceUseOfClass,hideResourceDeleteFailure=hideResourceDeleteFailure,redactProperties={'^.*$' : redactProperties},redactMode=redactMode,redactResponseURL=redactResponseURL,timeoutFunction=timeoutFunction)
+        @decorator(enforceUseOfClass=enforceUseOfClass,hideResourceDeleteFailure=hideResourceDeleteFailure,redactConfg=redactConfig,timeoutFunction=timeoutFunction)
         @rdecorator(decoratorHandleDelete=decoratorHandleDelete,expectedProperties=expectedProperties,genUUID=genUUID)
         def standalone_decorator_handler(event, lambdaContext=None):
             return func(event, lambdaContext)

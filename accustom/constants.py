@@ -25,7 +25,3 @@ class RedactMode:
 
     BLACKLIST = 'black'
     WHITELIST = 'white'
-
-    # Hidden Internal Mode
-    UNSUPPORT = 'unsupported'
-

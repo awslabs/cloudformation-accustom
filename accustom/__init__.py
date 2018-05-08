@@ -7,5 +7,8 @@ from .response import cfnresponse
 from .decorators import decorator
 from .decorators import rdecorator
 from .decorators import sdecorator
+from .redaction import RedactionConfig
+from .redaction import StandaloneRedactionConfig
+from .redaction import RedactionRuleSet
 
 __all__ = ['Exceptions']
