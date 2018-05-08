@@ -20,30 +20,16 @@ import json
 from functools import wraps
 from uuid import uuid4
 from .response import ResponseObject
-import six
-import re
-import sys
-import signal
+import six, re, sys
+from boto3 import client as bclient
+from botocore.client import Config
+from botocore.vendored import requests
 
 logger = logging.getLogger(__name__)
 
 # Time in milliseconds to set the alarm for (in milliseconds)
-TIMEOUT_THRESHOLD = 1500
+TIMEOUT_THRESHOLD = 4000
 BITSHIFT_1024 = 10
-
-def timeout_closure(failure_response,event,context,exit_code=0):
-    """ This function is added for timeout logic to prevent the Lambda Function from timing out and not responding back to CloudFormation
-
-        When enabled, this function will be called via an alarm 1 second before the lambda context ends
-    """
-
-    def timeout_handler(signum, frame):
-        logger.error("The lambda context is about to die, sending failure response to CloudFormation")
-        failure_response.send(event,context)
-        sys.exit(exit_code)
-        ### NOTE: This will cause async invocations to be reinvoked on timeout.
-        ### TODO: Reimplement this logic where customer handler is run in child thread so that we can cleanly exit lambda context
-    return timeout_handler
 
 def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProperties=None,redactMode=RedactMode.BLACKLIST,redactResponseURL=False,timeoutFunction=True):
     """Decorate a function to add exception handling and emit CloudFormation responses.
@@ -77,7 +63,7 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProp
             blacklist
         redactResponseURL (boolean): Prevents the pre-signed URL from being printed preventing out of band responses (recommended for
             production)
-        timeoutFunction (boolean): Will automatically send a failure signal to CloudFormation 1 second before Lambda timeout provided that this function is executed in Lambda
+        timeoutFunction (boolean): Will automatically send a failure signal to CloudFormation before Lambda timeout provided that this function is executed in Lambda
 
     Returns:
         The response object sent to CloudFormation
@@ -96,17 +82,55 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProp
             logger.info('Request received, processing...')
 
             # Timeout Function Handler
-            if lambdaContext and timeoutFunction:
-                # Create a failure response for timeout
-                failure_response = ResponseObject(reason='Lambda function timed out, returning failure.', responseStatus=Status.FAILED)
-                # Set the handler to execute on SIGALRM
-                signal.signal(signal.SIGALRM, timeout_closure(failure_response,event,lambdaContext))
-                # Get remaining time in milliseconds and subtract approximately 1 second
-                timeout_in_milli = lambdaContext.get_remaining_time_in_millis() - TIMEOUT_THRESHOLD
-                # In order to reduce the time of this operation to increase accuracy and also implicitly floor the value we will be using bit shifts
-                # Note that this is an approximation, however in the worst case (5 minutes remaining) it will translate to only a loss of 8 seconds
-                signal.alarm(timeout_in_milli >> BITSHIFT_1024)
-                #signal.alarm(int(timeout_in_million / 1000))
+            if 'LambdaParentRequestId' in event:
+                logger.info('This request has been invoked as a child, for parent logs please see request ID: %' % event['LambdaParentRequestId'])
+            elif lambdaContext is None and timeoutFunction:
+                logger.warn('You cannot use the timeoutFunction open outside of Lambda. To suppress this warning, set timeoutFunction to False')
+            elif timeoutFunction:
+                # Attempt to invoke the function. Depending on the error we get may continue execution or return
+                logger.info('This request has been invoked in Lambda with timeoutFunction set, attempting to invoke self')
+                pevent['LambdaParentRequestId'] = lambdaContext.aws_request_id
+                payload = json.dumps(pevent).encode('UTF-8')
+                timeout = (lambdaContext.get_remaining_time_in_millis() - TIMEOUT_THRESHOLD) / 1000
+                config = Config(connect_timeout=2, read_timeout=timeout, retries={'max_attempts': 0})
+                blambda = bclient('lambda',config=config)
+
+                # Normally we would just do a catch all error handler but in this case we want to be paranoid
+                try:
+                    response = bclient.invoke(FunctionName=lambdaContext.invoked_function_arn,InvocationType='RequestResponse',Payload=payload)
+                except (blcient.exceptions.EC2AccessDeniedException, bclient.exceptions.KMSAccessDeniedException, bclient.exceptions.KMSDisabledException) as e:
+                    logger.warn('Caught exception %s while trying to invoke function. Running handler locally.' % e)
+                    logger.warn('You cannot use the timeoutFunction option without the ability for the function to invoke itself. To suppress this warning, set timeoutFunction to False')
+                except (bclient.exceptions.EC2ThrottledException, bclient.exceptions.ENILimitReachedException, bclient.exceptions.TooManyRequestsException,
+                        bclient.exceptions.SubnetIPAddressLimitReachedException) as e:
+                    logger.error('Caught exception %s while trying to invoke function. Running handler locally.' % e)
+                    logger.error('You should make sure you have enough capacity and high enough limits to execute the chained function.')
+                except (bclient.exceptions.EC2UnexpectedException, bclient.exceptions.InvalidParameterValueException, bclient.exceptions.InvalidRequestContentException,
+                        bclient.exceptions.InvalidRuntimeException, bclient.exceptions.InvalidSecurityGroupIDException, bclient.exceptions.InvalidSubnetIDException,
+                        bclient.exceptions.InvalidZipFileException, blcient.exceptions.KMSInvalidStateException, bclient.exceptions/KMSNotFoundException,
+                        bclient.exceptions.RequestTooLargeException, bclient.exceptions.ResourceNotFoundException, bclient.exceptions.ServiceException,
+                        bclient.exceptions.UnsupportedMediaTypeException) as e:
+                    logger.error('Caught exception %s while trying to invoke function. Running handler locally.' % e)
+                except (requests.exceptions.ConnectionError) as e:
+                    logger.warn('Got error %s while trying to invoke function. Running handler locally' % e)
+                    logger.warn('You cannot use the timeoutFunction option without the ability to connect to the Lambda API from within the function. To suppress this warning, set timeoutFunction to False')
+                except (requests.exceptions.ReadTimeout) as e:
+                    # This should be a critical failure
+                    logger.error('Waited the read timeout and function did not return, returning an error')
+                    return ResponseObject(reason='Lambda function timed out, returning failure.', responseStatus=Status.FAILED).send(event,context)
+                else:
+                    message = 'Got an exception I did not understand while trying to invoke child function: %s' % e)
+                    logger.error(message)
+                    return ResponseObject(reason=message, responseStatus=Status.FAILED).send(event,context)
+                # Further checks
+                if 'FunctionError' in response:
+                    if 'Payload' in response:
+                        payload = response['Payload'].decode()
+                    else:
+                        payload = ''
+                    message = 'Invocation got an error: %s' % payload
+                    logger.error(message)
+                    return ResponseObject(reason=message, responseStatus=Status.FAILED).send(event,context)
 
             # Debug Logging Handler
             if logger.getEffectiveLevel() <= logging.DEBUG:
@@ -120,7 +144,6 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactProp
                 else:
                     logger.warn('redactMode %s unsupported, not redacting properties' % redactMode)
                     redactMode = RedactMode.UNSUPPORT
-
                 if redactMode != RedactMode.UNSUPPORT and redactProperties is not None:
                     if isinstance(redactProperties, dict):
                         for regex, iprops in redactProperties.items():

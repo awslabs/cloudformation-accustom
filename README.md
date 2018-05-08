@@ -53,7 +53,7 @@ It takes the following options:
 - `redactProperties` (Dictionary of Lists) : For more details on how this works please see "Redacting Confidential Information From Logs"
 - `redactMode` (accustom.RedactMode) : For more details on how this works please see "Redacting Confidential Information"
 - `redactResponseURL` (Boolean) : For more details on how this works please see "Redacting Confidential Information"
-- `timeoutFunction` (Boolean): Will automatically send a failure signal to CloudFormation approximately 1 second before Lambda timeout provided that this function is executed in Lambda
+- `timeoutFunction` (Boolean): Will automatically send a failure signal to CloudFormation before Lambda timeout provided that this function is executed in Lambda.
 
 Without a `ResponseObject` the decorator will make the following assumptions:
 - if a Lambda Context is not passed, the function will return `FAILED` 
@@ -106,9 +106,13 @@ If you often pass confidential information like passwords and secrets in propert
 
 << Documentation WIP >>
 
-## Note on Signals
+## Note on Timeouts and Permissions
+The timeout is implemented using *synchronous chained invocation* of your Lambda function. For this reason, please be aware of the following limitations:
 
-If you're using the `timeoutFunction` option be aware that this library uses the `SIGALRM` signal as it was the easiest way to implement this. If you wish to use `SIGALRM` for your own purposes, please do not use the timeout function of this library as they will conflict.
+- The function must have access to the Lambda API Endpoints in order to self invoke.
+- The function must have permission to self invoke (i.e. lambda:InvokeFunction permission).
+
+If your requirements violate any of these conditions, set the `timeoutFunction` option to `False`.
 
 ## Constants
 We provide there constants for ease of use:
