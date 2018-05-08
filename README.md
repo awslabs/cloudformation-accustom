@@ -41,9 +41,7 @@ It takes the following options:
 
 - `enforceUseOfClass` (Boolean) : When this is set to `True`, you must use a `ResponseObject`. This is implicitly set to true if no Lambda Context is provided.
 - `hideResourceDeleteFailure` (Boolean) : When this is set to `True` the function will return `SUCCESS` even on getting an Exception for `Delete` requests.
-- `redactProperties` (Dictionary of Lists) : For more details on how this works please see "Redacting Confidential Information From Logs"
-- `redactMode` (accustom.RedactMode) : For more details on how this works please see "Redacting Confidential Information"
-- `redactResponseURL` (Boolean) : For more details on how this works please see "Redacting Confidential Information"
+- `redactConfig` (accustom.RedactionConfig) : For more details on how this works please see "Redacting Confidential Information From Logs"
 - `timeoutFunction` (Boolean): Will automatically send a failure signal to CloudFormation before Lambda timeout provided that this function is executed in Lambda.
 
 Without a `ResponseObject` the decorator will make the following assumptions:
@@ -65,7 +63,7 @@ It takes the following option:
 The most useful of these options is `expectedProperties`. With it is possible to quickly define mandatory properties for your resource and fail if they are not included.
 
 ### `@accustom.sdecorator()`
-This decorator is just a combination of `@accustom.decorator()` and `@accustom.rdecorator()`. This allows you have a single, stand alone resource handler that has some defined properties and can automatically handle delete. The options available to it is the combination of both of the options available to the other two Decorators, with the exception of `redactProperties` which takes a list instead of a dictionary. For more information on `redactProperties` see "Redacting Confidential Information From Logs".
+This decorator is just a combination of `@accustom.decorator()` and `@accustom.rdecorator()`. This allows you have a single, stand alone resource handler that has some defined properties and can automatically handle delete. The options available to it is the combination of both of the options available to the other two Decorators, with the exception of `redactProperties` which takes an accustom.StandaloneRedactionConfig object instead of a accustom.RedactionConfig object. For more information on `redactProperties` see "Redacting Confidential Information From Logs".
 
 The other important note about combining these two decorators is that `hideResourceDeleteFailure` becomes redundant if `decoratorHandleDelete` is set to `True`.
 

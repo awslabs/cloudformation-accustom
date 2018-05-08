@@ -3,6 +3,11 @@
 These are the exceptions that can be returned by accustom
 """
 
+class ConflictingValue(Exception):
+    """Indicates that there is already a record with this value"""
+    def __init__(self,*args,**kwargs):
+        Exception.__init__(self,*args,**kwargs)
+
 class NoPhysicalResourceIdException(Exception):
     """Indicates that there was no valid value to use for PhysicalResourceId"""
     def __init__(self,*args,**kwargs):
