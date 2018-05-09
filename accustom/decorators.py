@@ -127,6 +127,8 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactConf
 
             # Debug Logging Handler
             if logger.getEffectiveLevel() <= logging.DEBUG:
+                if lambdaContext is not None:
+                    logger.debug('Running request with Lambda RequestId: %s' % lambdaContext.aws_request_id)
                 if redactConfig is not None and isinstance(redactConfig,(StandaloneRedactionConfig,RedactionConfig)):
                     logger.debug('Request Body:\n' + json.dumps(redactConfig._redact(event)))
                 elif redactConfig is not None:
@@ -136,6 +138,7 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactConf
                     logger.debug('Request Body:\n' + json.dumps(event))
 
             try:
+                logger.info('Running CloudFormation request %s for stack: %s' % (event['RequestId'], event['StackId']))
                 # Run the function
                 if lambdaContext is not None: result = func(event, lambdaContext)
                 else: result = func(event)
@@ -143,7 +146,7 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactConf
             except Exception as e:
                 # If there was an exception thrown by the function, send a failure response
                 result = ResponseObject(
-                            physicalResourceId=uuid4().hex if lambdaContext is None else None,
+                            physicalResourceId=str(uuid4()) if lambdaContext is None else None,
                             reason='Function %s failed due to exception "%s"' % (func.__name__, str(e)),
                             responseStatus=Status.FAILED)
                 logger.error(result.reason)
@@ -264,7 +267,7 @@ def rdecorator(decoratorHandleDelete=False,expectedProperties=None,genUUID=True)
 
             # Set the Physical Resource ID to a randomly generated UUID if it is not present
             if genUUID and 'PhysicalResourceId' not in event:
-                event['PhysicalResourceId'] = uuid4().hex
+                event['PhysicalResourceId'] = str(uuid4())
                 logger.info('Set PhysicalResourceId to %s' % event['PhysicalResourceId'])
 
             # Handle Delete when decoratorHandleDelete is set to True
