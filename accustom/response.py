@@ -94,8 +94,7 @@ def cfnresponse(event, responseStatus, responseReason=None, responseData=None, p
 
     logger.info("Sending response to pre-signed URL.")
     logger.debug("URL: %s" % responseUrl)
-    if logger.getEffectiveLevel() <= logging.DEBUG and not squashPrintResponse:
-        logger.debug("Response body:\n" + json_responseBody)
+    if not squashPrintResponse: logger.debug("Response body:\n" + json_responseBody)
 
     headers = {
         'content-type' : '',

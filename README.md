@@ -112,6 +112,13 @@ The timeout is implemented using *synchronous chained invocation* of your Lambda
 
 If your requirements violate any of these conditions, set the `timeoutFunction` option to `False`. Please also note that this will *double* the invocations per request, so if you not in the free tier for Lambda make sure you are aware of this as it may increase costs.
 
+## Logging Recommendations
+The decorators utilise the [logging](https://docs.python.org/3/library/logging.html) library for logging. It is strongly recommended that your function does the same, and sets the logging level to at least INFO:
+
+    import logging
+    logger = logging.getLogger(__name__)
+    logging.getLogger().setLevel(logging.DEBUG)
+
 ## Constants
 We provide there constants for ease of use:
 
