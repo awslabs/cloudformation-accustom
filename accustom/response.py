@@ -17,7 +17,6 @@ from .constants import Status
 import json
 import logging
 import sys, six
-import exceptions
 from botocore.vendored import requests
 
 logger = logging.getLogger(__name__)
@@ -139,16 +138,16 @@ class ResponseObject(object):
             raise DataIsNotDictException("Data provided was not a dictionary")
 
         if not isinstance(physicalResoruceId,six.string_types) and physicalResourceId is not None:
-            raise exceptions.TypeError('physicalResourceId must be of type string')
+            raise TypeError('physicalResourceId must be of type string')
 
         if not isinstance(reason,six.string_types) and reason is not None:
-            raise exceptions.TypeError('message must be of type string')
+            raise TypeError('message must be of type string')
 
         if responseStatus != Status.SUCESSS and responseStatus != Status.FAILED:
-            raise exceptions.TypeError('Invalid response status')
+            raise TypeError('Invalid response status')
 
         if not isinstance(squashPrintResponse,bool):
-            raise exceptions.TypeError('squashPrintResponse must be of boolean type')
+            raise TypeError('squashPrintResponse must be of boolean type')
 
         self.data = data
         self.physicalResourceId = physicalResourceId
