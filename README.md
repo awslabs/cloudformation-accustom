@@ -76,9 +76,9 @@ The `cfnresponse()` function and the `ResponseObject` are convenience function f
 ### `ResponseObject`
 The `ResponseObject` allows you to define a message to be sent to CloudFormation. It only has one method, `send()`, which uses the `cfnresponse()` function under the hood to fire the event. A response object can be initialised and fired with:
 
-        import accustom
-        r = accustom.ResponseObject()
-        r.send(event)
+    import accustom
+    r = accustom.ResponseObject()
+    r.send(event)
 
 If you are using the decorator pattern it is strongly recommended that you do not invoke the `send()` method, and instead allow the decorator to process the sending of the events for you.
 
