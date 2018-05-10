@@ -101,7 +101,7 @@ The timeout is implemented using *synchronous chained invocation* of your Lambda
 - The function must have access to the Lambda API Endpoints in order to self invoke.
 - The function must have permission to self invoke (i.e. lambda:InvokeFunction permission).
 
-If your requirements violate any of these conditions, set the `timeoutFunction` option to `False`.
+If your requirements violate any of these conditions, set the `timeoutFunction` option to `False`. Please also note that this will *double* the invocations per request, so if you not in the free tier for Lambda make sure you are aware of this as it may increase costs.
 
 ## Constants
 We provide there constants for ease of use:
