@@ -2,6 +2,10 @@
 
 These are the exceptions that can be returned by accustom
 """
+class CannotApplyRuleToStandaloneRedactionConfig(Exception):
+    """Indicates that a second rule set was attempted to be applied to a standalone"""
+    def __init__(self,*args,**kwargs):
+        Exception.__init__(self,*args,**kwargs)
 
 class ConflictingValue(Exception):
     """Indicates that there is already a record with this value"""

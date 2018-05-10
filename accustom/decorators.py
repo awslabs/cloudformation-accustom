@@ -69,6 +69,7 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactConf
          FailedToSendResponseException
 
     """
+
     def inner_decorator(func):
         @wraps(func)
         def handler_wrapper(event, lambdaContext=None):

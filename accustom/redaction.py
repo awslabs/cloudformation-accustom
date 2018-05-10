@@ -5,31 +5,59 @@ This allows you to define a redaction policy for accustom
 
 from .constants import RedactMode
 from .Exceptions import ConflictingValue
+from .Exceptions import CannotApplyRuleToStandaloneRedactionConfig
 
 import logging
-import exceptions
 import six
 
 logger = logging.getLogger(__name__)
 
-# TODO: Add function details in """ syntax
+_RESOURCEREGEX_DEFAULT='^.*$'
 
 class RedactionRuleSet(object):
-    def __init__(self,resourceRegex='^.*$'):
-        if not isinstance(resourceRegex,six.string_types):
-            raise exceptions.TypeError('resourceRegex must be a string')
+    """Class that allows you to define a redaction rule set for accustom"""
+    def __init__(self,resourceRegex=_RESOURCEREGEX_DEFAULT):
+        """Init function for the class
 
-        self.resource=resourceRegex
+        Args:
+            resourceRegex (String): The regex used to work out what resources to apply this too.
+
+        Raises:
+            TypeError
+
+        """
+        if not isinstance(resourceRegex,six.string_types):
+            raise TypeError('resourceRegex must be a string')
+
+        self.resourceRegex=resourceRegex
         self._properties =[]
 
     def addPropertyRegex(self,propertiesRegex):
+        """Allows you to add a property regex to whitelist/blacklist
+
+        Args:
+            propertiesRegex (String): The regex used to work out what properties to whitelist/blacklist
+
+        Raises:
+            TypeError
+
+        """
         if not isinstance(propertiesRegex,six.string_types):
-            raise exceptions.TypeError('propertiesRegex must be a string')
+            raise TypeError('propertiesRegex must be a string')
         self._properties.append(propertiesRegex)
 
     def addProperty(self,propertyName):
+        """Allows you to add a specific property to whitelist/blacklist
+
+        Args:
+            propertyName (String): The name of the property to whitelist/blacklist
+
+        Raises:
+            TypeError
+
+        """
         if not isinstance(propertyName,six.string_types):
-            raise exceptions.TypeError('propertyName must be a string')
+            raise TypeError('propertyName must be a string')
         self._properties.append('^' + propertyName + '$')
 
 class RedactionConfig(object):
@@ -48,30 +76,39 @@ class RedactionConfig(object):
 
         """
         if redactMode != RedactMode.BLACKLIST or redactMode != RedactMode.WHITELIST:
-            raise exceptions.TypeError('Invalid Redaction Type')
+            raise TypeError('Invalid Redaction Type')
 
         if not isinstance(redactResponseURL,bool):
-            raise exceptions.TypeError('redactResponseURL must be of boolean type')
+            raise TypeError('redactResponseURL must be of boolean type')
 
         self.redactMode=redactMode
         self.redactResponseURL=redactResponseURL
         self._redactProperties={}
 
-    def __str__(self):
-        return 'RedactionConfg(%s)' % self.redactMode
-
-    def __repr__(self):
-        return str(self)
-
     def addRuleSet(self,ruleSet):
+        """ This function will add a RedactionRuleSet object to the RedactionConfig.
+
+        Args:
+            ruleSet (RedactionRuleSet): The rule to be added to the RedactionConfig
+
+        Raises:
+            TypeError
+            ConflictingValue
+
+        """
+
         if not isintance(ruleSet,RedactionRuleSet):
-            raise exceptions.TypeError('Please use RedactionRuleSet class')
+            raise TypeError('Please use RedactionRuleSet class')
         if ruleSet.resourceRegex in self._redactProperties:
             raise ConflictingValue('There is already a record set for resource of regex: %s' % ruleSet.resourceRegex)
 
         self._redactProperties[ruleSet.resourceRegex] = ruleSet._properties
 
     def _redact(self,event):
+        """ Internal Function. Not to be consumed outside of accustom Library.
+
+            This function will take in an event and return the event redacted as per the redaction config.
+        """
         ec = event.copy()
         if self.redactMode == RedactMode.BLACKLIST:
             if 'ResourceProperties' in ec: ec['ResourceProperties'] = ec['ResourceProperties'].copy()
@@ -104,8 +141,35 @@ class RedactionConfig(object):
         if redactResponseURL: del ec['ResponseURL']
         return ec
 
+    def __str__(self):
+        return 'RedactionConfg(%s)' % self.redactMode
+
+    def __repr__(self):
+        return str(self)
 
 class StandaloneRedactionConfig(RedactionConfig):
     def __init__(self,ruleSet,redactMode=RedactMode.BLACKLIST,redactResponseURL=False):
+        """Init function for the class
+
+        Args:
+            redactMode (RedactMode.BLACKLIST or RedactMode.WHITELIST): Determine if we should whitelist or blacklist resources, defaults to
+            blacklist
+        redactResponseURL (boolean): Prevents the pre-signed URL from being printed preventing out of band responses (recommended for
+            production)
+        ruleSet (RedactionRuleSet): The single rule set to be applied
+
+        Raises:
+            TypeError
+        """
+
         RedactionConfig.__init__(self,redactMode=redactMode,redactResponseURL=redactResponseURL)
-        self.addRuleSet(ruleSet)
+        ruleSet.resourceRegex=_RESOURCEREGEX_DEFAULT #override resource regex to be default
+        RedactionConfig.addRuleSet(ruleSet)
+
+    def addRuleSet(self,ruleSet):
+        """ Overrides the addRuleSet operation with one that will immediately throw an exception
+
+            Raises
+                CannotApplyRuleToStandaloneRedactionConfig
+        """
+        raise CannotApplyRuleToStandaloneRedactionConfig('StandaloneRedactionConfigs do not support adding additional rules.')

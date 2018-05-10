@@ -5,6 +5,9 @@ This library was written based upon the same decorator methods used by the [cfnl
 
 This library provides a cfnresponse method, some helper static classes, and some decorator methods to help with the function.
 
+### Python Version
+This library only supports Python3.6. If you would like to adapt this library to Python2.7 please feel free to adapt it and provide a pull request, or provide your reason for requiring Python2.7 support on this [Issue](https://github.com/NightKhaos/accustom/issues/7). The reason it does not support Python2.7 is because of the use of `nonlocal` objects inside the decorators. I have used the `six` library throughout to try and make this code theoretically Python2.7 compatiable but it has not been tested in Python2.7 in any capacity. In theory, if you fix the scope issues it should "just work". Good luck!
+
 ## Installation
 
 accustom can be found under PyPI at [https://pypi.python.org/pypi/accustom](https://pypi.python.org/pypi/accustom).
@@ -102,7 +105,41 @@ To construct a response object you can provide the following optional parameters
 ## Redacting Confidential Information From Logs
 If you often pass confidential information like passwords and secrets in properties to Custom Resources, you may want to prevent certain properties from being printed to debug logs. To help with this we provide a functionality to either blacklist or whitelist Resource Properties based upon provided regular expressions.
 
-<< Documentation WIP >>
+To utilise this functionality you must initalise and include a `RedactionConfig`. A `RedactionConfig` consists of some flags to define the redaction mode and if the response URL should be redacted, as well as a series of `RedactionRuleSet` objects that define what to redact based upon regular expressions. There is a special case of `RedactionConfig` called a `StandaloneRedactionConfig` that has one, and only one, `RedactionRuleSet` that is provided at initialisation.
+
+Each `RedactionRuleSet` defines a single regex that defines which ResourceTypes this rule set should applied too. You can then apply any number of rules, based upon explicit property name, or a regex. Please see the definitions and an example below.
+
+### `RedactionRuleSet`
+The `RedactionRuleSet` object allows you to define a series of properties or regexes which to whitelist or blacklist for a given resource type regex. It is initialised with the following:
+
+- `resourceRegex` (String) : The regex used to work out what resources to apply this too.
+
+#### `addPropertyRegex(propertiesRegex)`
+
+- `propertiesRegex` (String) : The regex used to work out what properties to whitelist/blacklist
+
+#### `addProperty(propertyName)`
+
+- `propertyName` (String) : The name of the property to whitelist/blacklist
+
+
+### `RedactionConfig`
+The `RedactionConfig` object allows you to create a collection of `RedactionRuleSet` objects as well as define what mode (whitelist/blacklist) to use, and if the presigned URL provided by CloudFormation should be redacted from the logs.
+
+- `redactMode` (accustom.RedactMode) : What redaction mode should be used, if it should be a blacklist or whitelist
+- `redactResponseURL` (Boolean) : If the response URL should be not be logged.
+
+#### `addRuleSet(ruleSet)`
+
+- `ruleSet` (accustom.RedactionRuleSet) : The rule set to be added to the RedactionConfig
+
+### `StandaloneRedactionConfig`
+The `StandaloneRedactionConfig` object allows you to apply a single `RedactionRuleSet` object as well as define what mode (whitelist/blacklist) to use, and if the presigned URL provided by CloudFormation should be redacted from the logs.
+
+- `redactMode` (accustom.RedactMode) : What redaction mode should be used, if it should be a blacklist or whitelist
+- `redactResponseURL` (Boolean) : If the response URL should be not be logged.
+- `ruleSet` (accustom.RedactionRuleSet) : The rule set to be added to the RedactionConfig
+
 
 ## Note on Timeouts and Permissions
 The timeout is implemented using *synchronous chained invocation* of your Lambda function. For this reason, please be aware of the following limitations:
