@@ -81,10 +81,11 @@ def decorator(enforceUseOfClass=False,hideResourceDeleteFailure=False,redactConf
             if 'LambdaParentRequestId' in event:
                 logger.info('This request has been invoked as a child, for parent logs please see request ID: %' % event['LambdaParentRequestId'])
             elif lambdaContext is None and timeoutFunction:
-                logger.warn('You cannot use the timeoutFunction open outside of Lambda. To suppress this warning, set timeoutFunction to False')
+                logger.warn('You cannot use the timeoutFunction option outside of Lambda. To suppress this warning, set timeoutFunction to False')
             elif timeoutFunction:
                 # Attempt to invoke the function. Depending on the error we get may continue execution or return
                 logger.info('This request has been invoked in Lambda with timeoutFunction set, attempting to invoke self')
+                pevent = event.copy()
                 pevent['LambdaParentRequestId'] = lambdaContext.aws_request_id
                 payload = json.dumps(pevent).encode('UTF-8')
                 timeout = (lambdaContext.get_remaining_time_in_millis() - TIMEOUT_THRESHOLD) / 1000
