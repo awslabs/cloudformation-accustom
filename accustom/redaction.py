@@ -75,7 +75,7 @@ class RedactionConfig(object):
             TypeError
 
         """
-        if redactMode != RedactMode.BLACKLIST or redactMode != RedactMode.WHITELIST:
+        if redactMode != RedactMode.BLACKLIST and redactMode != RedactMode.WHITELIST:
             raise TypeError('Invalid Redaction Type')
 
         if not isinstance(redactResponseURL,bool):
@@ -97,7 +97,7 @@ class RedactionConfig(object):
 
         """
 
-        if not isintance(ruleSet,RedactionRuleSet):
+        if not isinstance(ruleSet,RedactionRuleSet):
             raise TypeError('Please use RedactionRuleSet class')
         if ruleSet.resourceRegex in self._redactProperties:
             raise ConflictingValue('There is already a record set for resource of regex: %s' % ruleSet.resourceRegex)
@@ -138,7 +138,7 @@ class RedactionConfig(object):
                 for key, value in event['OldResourceProperties'].items():
                     if key not in ec['OldResourceProperties']: ec['OldResourceProperties'][key] = '[REDACTED]'
 
-        if redactResponseURL: del ec['ResponseURL']
+        if self.redactResponseURL: del ec['ResponseURL']
         return ec
 
     def __str__(self):
