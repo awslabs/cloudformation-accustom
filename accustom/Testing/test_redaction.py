@@ -5,6 +5,7 @@ from accustom import RedactMode
 
 from unittest import TestCase, main as umain
 
+
 class RedactionRuleSetTests(TestCase):
 
     def setUp(self):
@@ -25,7 +26,7 @@ class RedactionRuleSetTests(TestCase):
 
     def test_adding_regex(self):
         self.ruleSet.addPropertyRegex('^Test$')
-        self.assertIn('^Test$',self.ruleSet._properties)
+        self.assertIn('^Test$', self.ruleSet._properties)
 
     def test_adding_invalid_regex(self):
         with self.assertRaises(TypeError):
@@ -33,11 +34,12 @@ class RedactionRuleSetTests(TestCase):
 
     def test_adding_property(self):
         self.ruleSet.addProperty('Test')
-        self.assertIn('^Test$',self.ruleSet._properties)
+        self.assertIn('^Test$', self.ruleSet._properties)
 
     def test_adding_invalid_property(self):
         with self.assertRaises(TypeError):
             self.ruleSet.addProperty(0)
+
 
 class RedactionConfigTests(TestCase):
 
@@ -56,7 +58,7 @@ class RedactionConfigTests(TestCase):
         self.assertFalse(rc.redactResponseURL)
 
     def test_input_values(self):
-        rc = RedactionConfig(redactMode=RedactMode.WHITELIST,redactResponseURL=True)
+        rc = RedactionConfig(redactMode=RedactMode.WHITELIST, redactResponseURL=True)
         self.assertEqual(rc.redactMode, RedactMode.WHITELIST)
         self.assertTrue(rc.redactResponseURL)
 
@@ -73,28 +75,27 @@ class RedactionConfigTests(TestCase):
         rc.addRuleSet(self.ruleSetDefault)
         rc.addRuleSet(self.ruleSetCustom)
 
-        self.assertIn('^.*$',rc._redactProperties)
-        self.assertIn('^Custom::Test$',rc._redactProperties)
-        self.assertIn('^Test$',rc._redactProperties['^.*$'])
-        self.assertIn('^Example$',rc._redactProperties['^.*$'])
-        self.assertIn('^DeleteMe.*$',rc._redactProperties['^Custom::Test$'])
-        self.assertIn('^Custom$',rc._redactProperties['^Custom::Test$'])
+        self.assertIn('^.*$', rc._redactProperties)
+        self.assertIn('^Custom::Test$', rc._redactProperties)
+        self.assertIn('^Test$', rc._redactProperties['^.*$'])
+        self.assertIn('^Example$', rc._redactProperties['^.*$'])
+        self.assertIn('^DeleteMe.*$', rc._redactProperties['^Custom::Test$'])
+        self.assertIn('^Custom$', rc._redactProperties['^Custom::Test$'])
 
     def test_redactResponseURL(self):
         rc = RedactionConfig(redactResponseURL=True)
-        event = {'ResponseURL' : True }
+        event = {'ResponseURL': True}
         revent = rc._redact(event)
 
-        self.assertIn('ResponseURL',event)
+        self.assertIn('ResponseURL', event)
         self.assertNotIn('ResponseURL', revent)
 
     def test_blacklist(self):
-        rc = RedactionConfig(reaactMode=RedactMode.BLACKLIST)
+        rc = RedactionConfig(redactMode=RedactMode.BLACKLIST)
         rc.addRuleSet(self.ruleSetDefault)
         rc.addRuleSet(self.ruleSetCustom)
 
         # TODO: Finish tests
-
 
 
 if __name__ == '__main__':
