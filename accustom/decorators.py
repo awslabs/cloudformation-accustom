@@ -32,8 +32,6 @@ logger = logging.getLogger(__name__)
 
 # Time in milliseconds to set the alarm for (in milliseconds)
 TIMEOUT_THRESHOLD = 4000
-BITSHIFT_1024 = 10
-
 
 def decorator(enforceUseOfClass=False, hideResourceDeleteFailure=False, redactConfig=None, timeoutFunction=False,
               redactConfg=None):
@@ -95,11 +93,13 @@ def decorator(enforceUseOfClass=False, hideResourceDeleteFailure=False, redactCo
                 pevent['LambdaParentRequestId'] = lambdaContext.aws_request_id
                 payload = json.dumps(pevent).encode('UTF-8')
                 timeout = (lambdaContext.get_remaining_time_in_millis() - TIMEOUT_THRESHOLD) / 1000
+                # Edge case where time is set to very low timeout, use half the timeout threshold as the timeout for the
+                # the Lambda Function
+                if timeout <= 0: timeout = TIMEOUT_THRESHOLD / 2000
                 config = Config(connect_timeout=2, read_timeout=timeout, retries={'max_attempts': 0})
                 blambda = bclient('lambda', config=config)
 
                 # Normally we would just do a catch all error handler but in this case we want to be paranoid
-                response = {}
                 try:
                     response = blambda.invoke(FunctionName=lambdaContext.invoked_function_arn,
                                               InvocationType='RequestResponse', Payload=payload)

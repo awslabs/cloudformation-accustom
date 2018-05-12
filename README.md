@@ -98,7 +98,7 @@ If you often pass confidential information like passwords and secrets in propert
 
 To utilise this functionality you must initalise and include a `RedactionConfig`. A `RedactionConfig` consists of some flags to define the redaction mode and if the response URL should be redacted, as well as a series of `RedactionRuleSet` objects that define what to redact based upon regular expressions. There is a special case of `RedactionConfig` called a `StandaloneRedactionConfig` that has one, and only one, `RedactionRuleSet` that is provided at initialisation.
 
-Each `RedactionRuleSet` defines a single regex that defines which ResourceTypes this rule set should applied too. You can then apply any number of rules, based upon explicit property name, or a regex. Please see the definitions and an example below.
+Each `RedactionRuleSet` defines a single regex that defines which ResourceTypes this rule set should applied too. You can then apply any number of rules, based upon explicit an property name, or a regex. Please see the definitions and an example below.
 
 ### `RedactionRuleSet`
 The `RedactionRuleSet` object allows you to define a series of properties or regexes which to whitelist or blacklist for a given resource type regex. It is initialised with the following:
@@ -131,14 +131,42 @@ The `StandaloneRedactionConfig` object allows you to apply a single `RedactionRu
 - `redactResponseURL` (Boolean) : If the response URL should be not be logged.
 - `ruleSet` (accustom.RedactionRuleSet) : The rule set to be added to the RedactionConfig
 
+### Example of Redaction
+
+The below example takes in two rule sets. The first ruleset applies to all resources types, and the second ruleset applies only to the `Custom::Test` resource type.
+
+All resources will have properties called `Test` and `Example` redacted and replaced with `[REDATED]`. The `Custom::Test` resource will also additionally redact properties called `Custom` and those that *start with* `DeleteMe`.
+
+Finally, as `redactResponseURL` is set to `True`, the response URL will not be printed in the debug logs.
+
+    from accustom import RedactionRuleSet, RedactionConfig, decorator
+    
+    ruleSetDefault = RedactionRuleSet()
+    ruleSetDefault.addPropertyRegex('^Test$')
+    ruleSetDefault.addProperty('Example')
+
+    ruleSetCustom = RedactionRuleSet('^Custom::Test$')
+    ruleSetCustom.addProperty('Custom')
+    ruleSetCustom.addPropertyRegex('^DeleteMe.*$')
+    
+    rc = RedactionConfig(redactResponseURL=True)
+    rc.addRuleSet(self.ruleSetDefault)
+    rc.addRuleSet(self.ruleSetCustom)
+    
+    @decorator(redactConfig=rc)
+    def resource_handler(event, context):
+        sum = (float(event['ResourceProperties']['key1']) +
+              float(event['ResourceProperties']['key2']))
+            return { 'sum' : sum }
+
 
 ## Note on Timeouts and Permissions
-The timeout is implemented using *synchronous chained invocation* of your Lambda function. For this reason, please be aware of the following limitations:
+The timeout is implemented using a *synchronous chained invocation* of your Lambda function. For this reason, please be aware of the following limitations:
 
 - The function must have access to the Lambda API Endpoints in order to self invoke.
 - The function must have permission to self invoke (i.e. lambda:InvokeFunction permission).
 
-If your requirements violate any of these conditions, set the `timeoutFunction` option to `False`. Please also note that this will *double* the invocations per request, so if you not in the free tier for Lambda make sure you are aware of this as it may increase costs.
+If your requirements violate any of these conditions, set the `timeoutFunction` option to `False`. Please also note that this will *double* the invocations per request, so if you're not in the free tier for Lambda make sure you are aware of this as it may increase costs.
 
 ## Logging Recommendations
 The decorators utilise the [logging](https://docs.python.org/3/library/logging.html) library for logging. It is strongly recommended that your function does the same, and sets the logging level to at least INFO:
