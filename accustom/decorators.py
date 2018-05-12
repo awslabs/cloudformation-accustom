@@ -103,6 +103,19 @@ def decorator(enforceUseOfClass=False, hideResourceDeleteFailure=False, redactCo
                 try:
                     response = blambda.invoke(FunctionName=lambdaContext.invoked_function_arn,
                                               InvocationType='RequestResponse', Payload=payload)
+                    # Further checks
+                    if 'FunctionError' in response:
+                        response.get('Payload',''.encode('UTF-8'))
+                        message = 'Invocation got an error: %s' % payload.decode()
+                        logger.error(message)
+                        return ResponseObject(reason=message, responseStatus=Status.FAILED).send(event, lambdaContext)
+                    else:
+                        # In this case the function returned without error which means we can assume the chained
+                        # invokation sent a response, so we do not have too.
+                        logger.info('Compeleted execution of chained invocation, returning payload')
+                        response.get('Payload',''.encode('UTF-8'))
+                        return payload.decode()
+
                 except (bclient.exceptions.EC2AccessDeniedException, bclient.exceptions.KMSAccessDeniedException,
                         bclient.exceptions.KMSDisabledException) as e:
                     logger.warning('Caught exception %s while trying to invoke function. Running handler locally.'
@@ -137,13 +150,6 @@ def decorator(enforceUseOfClass=False, hideResourceDeleteFailure=False, redactCo
                                           responseStatus=Status.FAILED).send(event, lambdaContext)
                 except Exception as e:
                     message = 'Got an exception I did not understand while trying to invoke child function: %s' % str(e)
-                    logger.error(message)
-                    return ResponseObject(reason=message, responseStatus=Status.FAILED).send(event, lambdaContext)
-                # Further checks
-                if 'FunctionError' in response:
-                    if 'Payload' in response: payload = response['Payload'].decode()
-                    else: payload = ''
-                    message = 'Invocation got an error: %s' % payload
                     logger.error(message)
                     return ResponseObject(reason=message, responseStatus=Status.FAILED).send(event, lambdaContext)
 

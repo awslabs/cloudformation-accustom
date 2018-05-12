@@ -19,7 +19,7 @@ class RedactionRuleSetTests(TestCase):
     def test_invalid_init(self):
         # This test ignores the setUp Resources
         with self.assertRaises(TypeError):
-            rs = RedactionRuleSet(0)
+            RedactionRuleSet(0)
 
     def test_default_regex(self):
         self.assertEqual(self.ruleSet.resourceRegex, '^.*$')
@@ -64,11 +64,11 @@ class RedactionConfigTests(TestCase):
 
     def test_invalid_input_values(self):
         with self.assertRaises(TypeError):
-            rc = RedactionConfig(redactMode='somestring')
+            RedactionConfig(redactMode='somestring')
         with self.assertRaises(TypeError):
-            rc = RedactionConfig(redactMode=0)
+            RedactionConfig(redactMode=0)
         with self.assertRaises(TypeError):
-            rc = RedactionConfig(redactResponseURL=0)
+            RedactionConfig(redactResponseURL=0)
 
     def test_structure(self):
         rc = RedactionConfig()
