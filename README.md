@@ -15,8 +15,16 @@ accustom can be found under PyPI at [https://pypi.python.org/pypi/accustom](http
 To install:
 
 ```bash
-pip install accustom
+pip3 install accustom
 ```
+
+To create a Lambda Code Zip with accustom included:
+
+```bash
+pip3 install accustom -t . --no-deps
+zip code.zip function.py accustom -r 
+```
+
 ## Quickstart
 
 The quickest way to use this library is to use the standalone decorator `@accustom.sdecorator`, in a Lambda function.
