@@ -14,19 +14,21 @@ accustom can be found under PyPI at [https://pypi.python.org/pypi/accustom](http
 
 To install:
 
-    pip install accustom
-
+```bash
+pip install accustom
+```
 ## Quickstart
 
 The quickest way to use this library is to use the standalone decorator `@accustom.sdecorator`, in a Lambda function.
 
-    import accustom
-    @accustom.sdecorator(expectedProperties=['key1','key2'])
-    def resource_handler(event, context):
-        sum = (float(event['ResourceProperties']['key1']) +
-              float(event['ResourceProperties']['key2']))
-            return { 'sum' : sum }
-
+```python
+import accustom
+@accustom.sdecorator(expectedProperties=['key1','key2'])
+def resource_handler(event, context):
+     sum = (float(event['ResourceProperties']['key1']) +
+            float(event['ResourceProperties']['key2']))
+     return { 'sum' : sum }
+```
 
 In this configuration, the decorator will check to make sure the properties `key1` and `key2` have been passed by the user, and automatically send a response back to CloudFormation based upon the `event` object.
 
@@ -79,9 +81,11 @@ The `cfnresponse()` function and the `ResponseObject` are convenience function f
 ### `ResponseObject`
 The `ResponseObject` allows you to define a message to be sent to CloudFormation. It only has one method, `send()`, which uses the `cfnresponse()` function under the hood to fire the event. A response object can be initialised and fired with:
 
-    import accustom
-    r = accustom.ResponseObject()
-    r.send(event)
+```python
+import accustom
+r = accustom.ResponseObject()
+r.send(event)
+```
 
 If you are using the decorator pattern it is strongly recommended that you do not invoke the `send()` method, and instead allow the decorator to process the sending of the events for you.
 
@@ -139,26 +143,27 @@ All resources will have properties called `Test` and `Example` redacted and repl
 
 Finally, as `redactResponseURL` is set to `True`, the response URL will not be printed in the debug logs.
 
-    from accustom import RedactionRuleSet, RedactionConfig, decorator
+from accustom import RedactionRuleSet, RedactionConfig, decorator
     
-    ruleSetDefault = RedactionRuleSet()
-    ruleSetDefault.addPropertyRegex('^Test$')
-    ruleSetDefault.addProperty('Example')
+```python
+ruleSetDefault = RedactionRuleSet()
+ruleSetDefault.addPropertyRegex('^Test$')
+ruleSetDefault.addProperty('Example')
 
-    ruleSetCustom = RedactionRuleSet('^Custom::Test$')
-    ruleSetCustom.addProperty('Custom')
-    ruleSetCustom.addPropertyRegex('^DeleteMe.*$')
+ruleSetCustom = RedactionRuleSet('^Custom::Test$')
+ruleSetCustom.addProperty('Custom')
+ruleSetCustom.addPropertyRegex('^DeleteMe.*$')
     
-    rc = RedactionConfig(redactResponseURL=True)
-    rc.addRuleSet(self.ruleSetDefault)
-    rc.addRuleSet(self.ruleSetCustom)
+rc = RedactionConfig(redactResponseURL=True)
+rc.addRuleSet(self.ruleSetDefault)
+rc.addRuleSet(self.ruleSetCustom)
     
-    @decorator(redactConfig=rc)
-    def resource_handler(event, context):
-        sum = (float(event['ResourceProperties']['key1']) +
-              float(event['ResourceProperties']['key2']))
-            return { 'sum' : sum }
-
+@decorator(redactConfig=rc)
+def resource_handler(event, context):
+    sum = (float(event['ResourceProperties']['key1']) +
+           float(event['ResourceProperties']['key2']))
+    return { 'sum' : sum }
+```
 
 ## Note on Timeouts and Permissions
 The timeout is implemented using a *synchronous chained invocation* of your Lambda function. For this reason, please be aware of the following limitations:
@@ -171,9 +176,11 @@ If your requirements violate any of these conditions, set the `timeoutFunction` 
 ## Logging Recommendations
 The decorators utilise the [logging](https://docs.python.org/3/library/logging.html) library for logging. It is strongly recommended that your function does the same, and sets the logging level to at least INFO:
 
-    import logging
-    logger = logging.getLogger(__name__)
-    logging.getLogger().setLevel(logging.DEBUG)
+```python
+import logging
+logger = logging.getLogger(__name__)
+logging.getLogger().setLevel(logging.DEBUG)
+```
 
 ## Constants
 We provide there constants for ease of use:
