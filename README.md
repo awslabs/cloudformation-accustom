@@ -187,7 +187,7 @@ The decorators utilise the [logging](https://docs.python.org/3/library/logging.h
 ```python
 import logging
 logger = logging.getLogger(__name__)
-logging.getLogger().setLevel(logging.DEBUG)
+logging.getLogger().setLevel(logging.INFO)
 ```
 
 ## Constants
