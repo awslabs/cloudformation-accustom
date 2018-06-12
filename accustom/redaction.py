@@ -10,10 +10,12 @@ from .Exceptions import CannotApplyRuleToStandaloneRedactionConfig
 import logging
 import six
 import re
+import copy
 
 logger = logging.getLogger(__name__)
 
 _RESOURCEREGEX_DEFAULT = '^.*$'
+REDACTED_STRING='[REDACTED]'
 
 
 class RedactionRuleSet(object):
@@ -112,35 +114,36 @@ class RedactionConfig(object):
 
             This function will take in an event and return the event redacted as per the redaction config.
         """
-        ec = event.copy()
-        if self.redactMode == RedactMode.BLACKLIST:
-            if 'ResourceProperties' in ec: ec['ResourceProperties'] = ec['ResourceProperties'].copy()
-            if 'OldResourceProperties' in ec: ec['OldResourceProperties'] = ec['OldResourceProperties'].copy()
-        elif self.redactMode == RedactMode.WHITELIST:
+        ec = copy.deepcopy(event)
+        if self.redactMode == RedactMode.WHITELIST:
             if 'ResourceProperties' in ec: ec['ResourceProperties'] = {}
             if 'OldResourceProperties' in ec: ec['OldResourceProperties'] = {}
         for resourceRegex, propertyRegex in self._redactProperties.items():
             if re.search(resourceRegex, event['ResourceType']) is not None:
                 # Go through the Properties looking to see if they're in the ResourceProperties or OldResourceProperties
                 for index, item in enumerate(propertyRegex):
+                    r = re.compile(item)
                     if self.redactMode == RedactMode.BLACKLIST:
-                        if 'ResourceProperties' in ec and re.search(item, ec['ResourceProperties']) is not None:
-                            ec['ResourceProperties'][item] = '[REDACTED]'
-                        if 'OldResourceProperties' in ec and re.search(item, ec['OldResourceProperties']) is not None:
-                            ec['OldResourceProperties'][item] = '[REDACTED]'
+                        if 'ResourceProperties' in ec:
+                            for mitem in filter(r.match, ec['ResourceProperties']):
+                                ec['ResourceProperties'][mitem] = REDACTED_STRING
+                        if 'OldResourceProperties' in ec:
+                            for mitem in filter(r.match, ec['OldResourceProperties']):
+                                ec['OldResourceProperties'][mitem] = REDACTED_STRING
                     elif self.redactMode == RedactMode.WHITELIST:
-                        if 'ResourceProperties' in ec and re.search(item, event['ResourceProperties']) is not None:
-                            ec['ResourceProperties'][item] = event['ResourceProperties'][item]
-                        if 'OldResourceProperties' in ec and re.search(item,
-                                                                       event['OldResourceProperties']) is not None:
-                            ec['OldResourceProperties'][item] = event['OldResourceProperties'][item]
+                        if 'ResourceProperties' in ec:
+                            for mitem in filter(r.match, event['ResourceProperties']):
+                                ec['ResourceProperties'][mitem] = event['ResourceProperties'][mitem]
+                        if 'OldResourceProperties' in ec:
+                            for mitem in filter(r.match, event['OldResourceProperties']):
+                                ec['OldResourceProperties'][mitem] = event['OldResourceProperties'][mitem]
         if self.redactMode == RedactMode.WHITELIST:
             if 'ResourceProperties' in ec:
                 for key, value in event['ResourceProperties'].items():
-                    if key not in ec['ResourceProperties']: ec['ResourceProperties'][key] = '[REDACTED]'
+                    if key not in ec['ResourceProperties']: ec['ResourceProperties'][key] = REDACTED_STRING
             if 'OldResourceProperties' in ec:
                 for key, value in event['OldResourceProperties'].items():
-                    if key not in ec['OldResourceProperties']: ec['OldResourceProperties'][key] = '[REDACTED]'
+                    if key not in ec['OldResourceProperties']: ec['OldResourceProperties'][key] = REDACTED_STRING
 
         if self.redactResponseURL: del ec['ResponseURL']
         return ec
@@ -170,7 +173,8 @@ class StandaloneRedactionConfig(RedactionConfig):
         RedactionConfig.__init__(self, redactMode=redactMode, redactResponseURL=redactResponseURL)
         ruleSet.resourceRegex=_RESOURCEREGEX_DEFAULT
             # override resource regex to be default
-        RedactionConfig.addRuleSet(ruleSet)
+        assert(ruleSet is not None)
+        RedactionConfig.addRuleSet(self, ruleSet)
 
     def addRuleSet(self, ruleSet):
         """ Overrides the addRuleSet operation with one that will immediately throw an exception
