@@ -11,6 +11,9 @@ from unittest import TestCase, main as umain
 class cfnresponseTests(TestCase):
     pass
 
+class ResponseObjectTests(TestCase):
+    pass
+
     # TODO: Implement response tests
 
 if __name__ == '__main__':
