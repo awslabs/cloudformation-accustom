@@ -115,7 +115,18 @@ def cfnresponse(event, responseStatus, responseReason=None, responseData=None, p
 
     try:
         response = requests.put(responseUrl, data=json_responseBody, headers=headers)
-        logger.debug("Response status code: %s" % response.reason)
+        if response.status_code != 200:
+            # Exceptions will only be thrown on timeout or other errors, in order to catch an invalid
+            # status code like 403 we will need to explicitly check the status code. In normal operation
+            # we should get a "200 OK" response to our PUT.
+            message = "Unable to send response to URL, status code received: %d %s" % (response.status_code, response.reason)
+            logger.error(message)
+            raise FailedToSendResponseException(message)
+        logger.debug("Response status code: %d %s" % (response.status_code, response.reason))
+
+    except FailedToSendResponseException as e:
+        # Want to explicitly catch this exception we just raised in order to raise it unmodified
+        raise e
 
     except Exception as e:
         logger.error('Unable to send response to URL, reason given: %s' % str(e))
