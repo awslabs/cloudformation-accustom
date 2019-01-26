@@ -11,7 +11,16 @@ accustom can be found under PyPI at [https://pypi.python.org/pypi/accustom](http
 
 To install:
 
-    pip install accustom
+```bash
+pip3 install accustom
+```
+
+To create a Lambda Code Zip with accustom included:
+
+```bash
+pip3 install accustom -t . --no-deps
+zip code.zip function.py accustom -r 
+```
 
 ## Quickstart
 
