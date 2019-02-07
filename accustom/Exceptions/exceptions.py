@@ -38,3 +38,8 @@ class FailedToSendResponseException(Exception):
     """Indicates there was a problem sending the response"""
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
+
+class NotValidRequestObjectException(Exception):
+    """Indicates that the event passed in is not a valid Request Object"""
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)

@@ -4,6 +4,7 @@ from .constants import RequestType
 from .constants import RedactMode
 from .response import ResponseObject
 from .response import cfnresponse
+from .response import is_valid_event
 from .decorators import decorator
 from .decorators import rdecorator
 from .decorators import sdecorator

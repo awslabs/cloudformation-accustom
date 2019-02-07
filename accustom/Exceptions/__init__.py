@@ -6,3 +6,4 @@ from .exceptions import NoPhysicalResourceIdException
 from .exceptions import InvalidResponseStatusException
 from .exceptions import DataIsNotDictException
 from .exceptions import FailedToSendResponseException
+from .exceptions import NotValidRequestObjectException

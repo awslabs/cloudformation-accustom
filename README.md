@@ -91,8 +91,10 @@ The `ResponseObject` allows you to define a message to be sent to CloudFormation
 
 ```python
 import accustom
-r = accustom.ResponseObject()
-r.send(event)
+
+def handler(event, context):
+    r = accustom.ResponseObject()
+    r.send(event)
 ```
 
 If you are using the decorator pattern it is strongly recommended that you do not invoke the `send()` method, and instead allow the decorator to process the sending of the events for you.
@@ -108,7 +110,7 @@ To construct a response object you can provide the following optional parameters
 ## Redacting Confidential Information From Logs
 If you often pass confidential information like passwords and secrets in properties to Custom Resources, you may want to prevent certain properties from being printed to debug logs. To help with this we provide a functionality to either blacklist or whitelist Resource Properties based upon provided regular expressions.
 
-To utilise this functionality you must initalise and include a `RedactionConfig`. A `RedactionConfig` consists of some flags to define the redaction mode and if the response URL should be redacted, as well as a series of `RedactionRuleSet` objects that define what to redact based upon regular expressions. There is a special case of `RedactionConfig` called a `StandaloneRedactionConfig` that has one, and only one, `RedactionRuleSet` that is provided at initialisation.
+To utilise this functionality you must initialise and include a `RedactionConfig`. A `RedactionConfig` consists of some flags to define the redaction mode and if the response URL should be redacted, as well as a series of `RedactionRuleSet` objects that define what to redact based upon regular expressions. There is a special case of `RedactionConfig` called a `StandaloneRedactionConfig` that has one, and only one, `RedactionRuleSet` that is provided at initialisation.
 
 Each `RedactionRuleSet` defines a single regex that defines which ResourceTypes this rule set should applied too. You can then apply any number of rules, based upon explicit an property name, or a regex. Please see the definitions and an example below.
 
@@ -117,11 +119,11 @@ The `RedactionRuleSet` object allows you to define a series of properties or reg
 
 - `resourceRegex` (String) : The regex used to work out what resources to apply this too.
 
-#### `addPropertyRegex(propertiesRegex)`
+#### `add_property_regex(propertiesRegex)`
 
 - `propertiesRegex` (String) : The regex used to work out what properties to whitelist/blacklist
 
-#### `addProperty(propertyName)`
+#### `add_property(propertyName)`
 
 - `propertyName` (String) : The name of the property to whitelist/blacklist
 
@@ -132,7 +134,7 @@ The `RedactionConfig` object allows you to create a collection of `RedactionRule
 - `redactMode` (accustom.RedactMode) : What redaction mode should be used, if it should be a blacklist or whitelist
 - `redactResponseURL` (Boolean) : If the response URL should be not be logged.
 
-#### `addRuleSet(ruleSet)`
+#### `add_rule_set(ruleSet)`
 
 - `ruleSet` (accustom.RedactionRuleSet) : The rule set to be added to the RedactionConfig
 
@@ -150,21 +152,21 @@ The below example takes in two rule sets. The first ruleset applies to all resou
 All resources will have properties called `Test` and `Example` redacted and replaced with `[REDATED]`. The `Custom::Test` resource will also additionally redact properties called `Custom` and those that *start with* `DeleteMe`.
 
 Finally, as `redactResponseURL` is set to `True`, the response URL will not be printed in the debug logs.
-
-from accustom import RedactionRuleSet, RedactionConfig, decorator
-    
+   
 ```python
+from accustom import RedactionRuleSet, RedactionConfig, decorator
+
 ruleSetDefault = RedactionRuleSet()
-ruleSetDefault.addPropertyRegex('^Test$')
-ruleSetDefault.addProperty('Example')
+ruleSetDefault.add_property_regex('^Test$')
+ruleSetDefault.add_property('Example')
 
 ruleSetCustom = RedactionRuleSet('^Custom::Test$')
-ruleSetCustom.addProperty('Custom')
-ruleSetCustom.addPropertyRegex('^DeleteMe.*$')
+ruleSetCustom.add_property('Custom')
+ruleSetCustom.add_property_regex('^DeleteMe.*$')
     
 rc = RedactionConfig(redactResponseURL=True)
-rc.addRuleSet(self.ruleSetDefault)
-rc.addRuleSet(self.ruleSetCustom)
+rc.add_rule_set(ruleSetDefault)
+rc.add_rule_set(ruleSetCustom)
     
 @decorator(redactConfig=rc)
 def resource_handler(event, context):

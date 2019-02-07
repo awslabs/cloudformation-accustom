@@ -3,9 +3,11 @@
 This allows you to define a redaction policy for accustom
 """
 
+from .response import is_valid_event
 from .constants import RedactMode
 from .Exceptions import ConflictingValue
 from .Exceptions import CannotApplyRuleToStandaloneRedactionConfig
+from .Exceptions import NotValidRequestObjectException
 
 import logging
 import six
@@ -15,12 +17,13 @@ import copy
 logger = logging.getLogger(__name__)
 
 _RESOURCEREGEX_DEFAULT = '^.*$'
-REDACTED_STRING='[REDACTED]'
+REDACTED_STRING = '[REDACTED]'
 
 
 class RedactionRuleSet(object):
     """Class that allows you to define a redaction rule set for accustom"""
-    def __init__(self, resourceRegex=_RESOURCEREGEX_DEFAULT):
+
+    def __init__(self, resourceRegex: str = _RESOURCEREGEX_DEFAULT):
         """Init function for the class
 
         Args:
@@ -36,7 +39,7 @@ class RedactionRuleSet(object):
         self.resourceRegex = resourceRegex
         self._properties = []
 
-    def addPropertyRegex(self, propertiesRegex):
+    def add_property_regex(self, propertiesRegex : str):
         """Allows you to add a property regex to whitelist/blacklist
 
         Args:
@@ -50,7 +53,7 @@ class RedactionRuleSet(object):
             raise TypeError('propertiesRegex must be a string')
         self._properties.append(propertiesRegex)
 
-    def addProperty(self, propertyName):
+    def add_property(self, propertyName: str):
         """Allows you to add a specific property to whitelist/blacklist
 
         Args:
@@ -67,7 +70,8 @@ class RedactionRuleSet(object):
 
 class RedactionConfig(object):
     """Class that allows you define a redaction policy for accustom"""
-    def __init__(self, redactMode=RedactMode.BLACKLIST, redactResponseURL=False):
+
+    def __init__(self, redactMode: str = RedactMode.BLACKLIST, redactResponseURL: bool = False):
         """Init function for the class
 
         Args:
@@ -90,7 +94,7 @@ class RedactionConfig(object):
         self.redactResponseURL = redactResponseURL
         self._redactProperties = {}
 
-    def addRuleSet(self, ruleSet):
+    def add_rule_set(self, ruleSet: RedactionRuleSet):
         """ This function will add a RedactionRuleSet object to the RedactionConfig.
 
         Args:
@@ -109,11 +113,17 @@ class RedactionConfig(object):
 
         self._redactProperties[ruleSet.resourceRegex] = ruleSet._properties
 
-    def _redact(self, event):
+    def _redact(self, event: dict):
         """ Internal Function. Not to be consumed outside of accustom Library.
 
             This function will take in an event and return the event redacted as per the redaction config.
         """
+        if not is_valid_event(event):
+            # If it is not a valid event we need to raise an exception
+            message = 'The event object passed is not a valid Request Object as per ' + \
+                      'https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/crpg-ref-requests.html'
+            logger.error(message)
+            raise NotValidRequestObjectException(message)
         ec = copy.deepcopy(event)
         if self.redactMode == RedactMode.WHITELIST:
             if 'ResourceProperties' in ec: ec['ResourceProperties'] = {}
@@ -149,14 +159,15 @@ class RedactionConfig(object):
         return ec
 
     def __str__(self):
-        return 'RedactionConfg(%s)' % self.redactMode
+        return 'RedactionConfig(%s)' % self.redactMode
 
     def __repr__(self):
         return str(self)
 
 
 class StandaloneRedactionConfig(RedactionConfig):
-    def __init__(self, ruleSet, redactMode=RedactMode.BLACKLIST, redactResponseURL=False):
+    def __init__(self, ruleSet: RedactionRuleSet, redactMode: str = RedactMode.BLACKLIST,
+                 redactResponseURL: bool = False):
         """Init function for the class
 
         Args:
@@ -171,13 +182,13 @@ class StandaloneRedactionConfig(RedactionConfig):
         """
 
         RedactionConfig.__init__(self, redactMode=redactMode, redactResponseURL=redactResponseURL)
-        ruleSet.resourceRegex=_RESOURCEREGEX_DEFAULT
-            # override resource regex to be default
-        assert(ruleSet is not None)
-        RedactionConfig.addRuleSet(self, ruleSet)
+        ruleSet.resourceRegex = _RESOURCEREGEX_DEFAULT
+        # override resource regex to be default
+        assert (ruleSet is not None)
+        RedactionConfig.add_rule_set(self, ruleSet)
 
-    def addRuleSet(self, ruleSet):
-        """ Overrides the addRuleSet operation with one that will immediately throw an exception
+    def add_rule_set(self, ruleSet: RedactionRuleSet):
+        """ Overrides the add_rule_set operation with one that will immediately throw an exception
 
             Raises
                 CannotApplyRuleToStandaloneRedactionConfig

@@ -9,22 +9,65 @@ from .Exceptions import DataIsNotDictException
 from .Exceptions import NoPhysicalResourceIdException
 from .Exceptions import InvalidResponseStatusException
 from .Exceptions import FailedToSendResponseException
+from .Exceptions import NotValidRequestObjectException
 
 # Constants
 from .constants import Status
+from .constants import RequestType
 
 # Required Libraries
 import json
 import logging
 import sys
 import six
+from urllib.parse import urlparse
 from botocore.vendored import requests
 
 logger = logging.getLogger(__name__)
 
 
-def cfnresponse(event, responseStatus, responseReason=None, responseData=None, physicalResourceId=None,
-                lambdaContext=None, squashPrintResponse=False):
+def is_valid_event(event: dict) -> bool:
+    """This function takes in a CloudFormation Request Object and checks for the required fields as per:
+    https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/crpg-ref-requests.html
+
+    Args:
+        event (dict): The request object being processed.
+
+    Returns:
+        bool: If the request object is a valid request object
+
+    """
+    if not all(v in event for v in [
+        'RequestType',
+        'ResponseURL',
+        'StackId',
+        'RequestId',
+        'ResourceType',
+        'LogicalResourceId'
+    ]):
+        # Check we have all the required fields
+        return False
+
+    if event['RequestType'] not in [RequestType.CREATE, RequestType.DELETE, RequestType.UPDATE]:
+        # Check if the request type is a valid request type
+        return False
+
+    scheme = urlparse(event['ResponseURL']).scheme
+    if scheme == '' or scheme not in ('http', 'https'):
+        # Check if the URL appears to be a valid HTTP or HTTPS URL
+        # Technically it should always be an HTTPS URL but hedging bets for testing to allow http
+        return False
+
+    if event['RequestType'] in [RequestType.UPDATE, RequestType.DELETE] and 'PhysicalResourceId' not in event:
+        # If it is an Update or Delete request there needs to be a PhysicalResourceId key
+        return False
+
+    # All checks passed
+    return True
+
+
+def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, responseData: dict = None,
+                physicalResourceId: str = None, context: dict = None, squashPrintResponse: bool = False):
     """Format and send CloudFormation Custom Resource Objects
 
     This section is derived off the cfnresponse source code provided by Amazon:
@@ -40,13 +83,13 @@ def cfnresponse(event, responseStatus, responseReason=None, responseData=None, p
             on FAILED this is given as reason overriding responseReason.
         responseReason (str): The reason for this result.
         physicalResourceId (str): The PhysicalResourceID to be sent back to CloudFormation
-        lambdaContext (context object): Can be used in lieu of a PhysicalResourceId to use the Lambda Context to derive
+        context (context object): Can be used in lieu of a PhysicalResourceId to use the Lambda Context to derive
             an ID.
         squashPrintResponse (boolean): When logging set to debug and this is set to False, it will print the response
             (defaults to False). If set to True this will also send the response with NoEcho set to True.
 
-        Note that either physicalResourceId or lambdaContext must be defined, and physicalResourceId supersedes
-        lambdaContext
+        Note that either physicalResourceId or context must be defined, and physicalResourceId supersedes
+        context
 
     Returns:
         Dictionary of Response Sent
@@ -56,10 +99,18 @@ def cfnresponse(event, responseStatus, responseReason=None, responseData=None, p
         InvalidResponseStatusException
         DataIsNotDictException
         FailedToSendResponseException
+        NotValidRequestObjectException
 
     """
-    if physicalResourceId is None and lambdaContext is None and 'PhysicalResourceId' not in event:
-        raise NoPhysicalResourceIdException("Both physicalResourceId and lambdaContext are None, and there is no" +
+    if not is_valid_event(event):
+        # If it is not a valid event we need to raise an exception
+        message = 'The event object passed is not a valid Request Object as per ' + \
+                  'https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/crpg-ref-requests.html'
+        logger.error(message)
+        raise NotValidRequestObjectException(message)
+
+    if physicalResourceId is None and context is None and 'PhysicalResourceId' not in event:
+        raise NoPhysicalResourceIdException("Both physicalResourceId and context are None, and there is no" +
                                             "physicalResourceId in the event")
 
     if responseStatus != Status.FAILED and responseStatus != Status.SUCCESS:
@@ -74,21 +125,20 @@ def cfnresponse(event, responseStatus, responseReason=None, responseData=None, p
         elif responseReason is None:
             responseReason = 'Unknown failure occurred'
 
-        if lambdaContext is not None:
+        if context is not None:
             responseReason = "%s -- See the details in CloudWatch Log Stream: %s" % (responseReason,
-                                                                                     lambdaContext.log_stream_name)
+                                                                                     context.log_stream_name)
 
-    elif lambdaContext is not None and responseReason is None:
-            responseReason = "See the details in CloudWatch Log Stream: %s" % lambdaContext.log_stream_name
+    elif context is not None and responseReason is None:
+            responseReason = "See the details in CloudWatch Log Stream: %s" % context.log_stream_name
 
     responseUrl = event['ResponseURL']
 
     if physicalResourceId is None and 'PhysicalResourceId' in event: physicalResourceId = event['PhysicalResourceId']
 
-    responseBody = {}
-    responseBody['Status'] = responseStatus
+    responseBody = {'Status': responseStatus}
     if responseReason is not None: responseBody['Reason'] = responseReason
-    responseBody['PhysicalResourceId'] = physicalResourceId or lambdaContext.log_stream_name
+    responseBody['PhysicalResourceId'] = physicalResourceId or context.log_stream_name
     responseBody['StackId'] = event['StackId']
     responseBody['RequestId'] = event['RequestId']
     responseBody['LogicalResourceId'] = event['LogicalResourceId']
@@ -119,7 +169,8 @@ def cfnresponse(event, responseStatus, responseReason=None, responseData=None, p
             # Exceptions will only be thrown on timeout or other errors, in order to catch an invalid
             # status code like 403 we will need to explicitly check the status code. In normal operation
             # we should get a "200 OK" response to our PUT.
-            message = "Unable to send response to URL, status code received: %d %s" % (response.status_code, response.reason)
+            message = "Unable to send response to URL, status code received: %d %s" % (response.status_code,
+                                                                                       response.reason)
             logger.error(message)
             raise FailedToSendResponseException(message)
         logger.debug("Response status code: %d %s" % (response.status_code, response.reason))
@@ -137,8 +188,8 @@ def cfnresponse(event, responseStatus, responseReason=None, responseData=None, p
 
 class ResponseObject(object):
     """Class that allows you to init a ResponseObject for easy function writing"""
-    def __init__(self, data=None, physicalResourceId=None, reason=None, responseStatus=Status.SUCCESS,
-                 squashPrintResponse=False):
+    def __init__(self, data: dict = None, physicalResourceId: str = None, reason: str = None,
+                 responseStatus: str = Status.SUCCESS, squashPrintResponse: bool = False):
         """Init function for the class
 
         Args:
@@ -176,7 +227,7 @@ class ResponseObject(object):
         self.responseStatus = responseStatus
         self.squashPrintResponse = squashPrintResponse
 
-    def send(self, event, lambdaContext=None):
+    def send(self, event: dict, context: dict = None):
         """Send this CloudFormation Custom Resource Object
 
         Creates a JSON payload that is sent back to the ResponseURL (pre-signed S3 URL) based upon this response object
@@ -184,10 +235,10 @@ class ResponseObject(object):
 
         Args:
             event: A dict containing CloudFormation custom resource request field
-            lambdaContext: Can be used in lieu of a PhysicalResourceId to use the Lambda Context to derive an ID.
+            context: Can be used in lieu of a PhysicalResourceId to use the Lambda Context to derive an ID.
 
-            Note that either physicalResourceId in the object or lambdaContext must be defined, and physicalResourceId
-            supersedes lambdaContext
+            Note that either physicalResourceId in the object or context must be defined, and physicalResourceId
+            supersedes context
 
         Returns:
             Dictionary of Response Sent
@@ -197,8 +248,9 @@ class ResponseObject(object):
             InvalidResponseStatusException
             DataIsNotDictException
             FailedToSendResponseException
+            NotValidRequestObjectException
         """
-        return cfnresponse(event, self.responseStatus, self.reason, self.data, self.physicalResourceId, lambdaContext,
+        return cfnresponse(event, self.responseStatus, self.reason, self.data, self.physicalResourceId, context,
                            self.squashPrintResponse)
 
     def __str__(self):
