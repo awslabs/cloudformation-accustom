@@ -21,10 +21,15 @@ import logging
 import sys
 import six
 from urllib.parse import urlparse
-from botocore.vendored import requests
 
 logger = logging.getLogger(__name__)
 
+# Import Requests
+try:
+    import requests
+except ImportError:
+    from botocore.vendored import requests
+    logger.warning("botocore.vendored version of requests is deprecated. Please include requests in your code bundle.")
 
 def is_valid_event(event: dict) -> bool:
     """This function takes in a CloudFormation Request Object and checks for the required fields as per:
@@ -37,14 +42,14 @@ def is_valid_event(event: dict) -> bool:
         bool: If the request object is a valid request object
 
     """
-    if not all(v in event for v in [
+    if not (all(v in event for v in (
         'RequestType',
         'ResponseURL',
         'StackId',
         'RequestId',
         'ResourceType',
         'LogicalResourceId'
-    ]):
+    ))):
         # Check we have all the required fields
         return False
 

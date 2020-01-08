@@ -1,2 +1,4 @@
 botocore>=1.10
 boto3>=1.8
+requests>=2.0
+requests-mock>=1.5

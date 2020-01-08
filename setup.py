@@ -1,4 +1,6 @@
 from distutils.core import setup
+from setuptools import find_packages
+
 setup(
     name = 'accustom',
     version = '1.1.0',
@@ -30,9 +32,6 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
     packages = ['accustom', 'accustom.Exceptions'],
-    install_requires=[
-      'botocore>=1.10'
-      'boto3>=1.8'
-    ],
+    install_requires=find_packages(),
     python_requires='>=3, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, <4',
     )
