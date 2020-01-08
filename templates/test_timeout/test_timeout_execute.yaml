@@ -1,0 +1,8 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  This template tests the deployed function and executes it. It should fail to complete in time and not timeout.
+Resources:
+  TestExecution:
+    Type: Custom::WillTimeout
+    Properties:
+      ServiceToken: !ImportValue Test-Timeout-Function

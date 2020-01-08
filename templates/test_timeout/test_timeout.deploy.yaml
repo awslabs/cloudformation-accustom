@@ -1,0 +1,6 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  This template deploys accustom using a function that will timeout before it completes.
+Resources:
+  AccustomFunction:
+    Type: AWS::Lambda::Function

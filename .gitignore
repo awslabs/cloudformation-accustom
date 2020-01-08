@@ -5,3 +5,7 @@ MANIFEST
 build/
 .DS_Store
 .idea
+templates/*/code_tmp
+templates/*/code.zip
+templates/*/*.ready.yaml
+*.egg-info

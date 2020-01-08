@@ -18,11 +18,12 @@ To install:
 pip3 install accustom
 ```
 
-To create a Lambda Code Zip with accustom and dependencies including (`requests`):
+To create a Lambda Code Zip with accustom and dependencies including (`requests`), create a directory with only your
+code in it and run the following:
 
 ```bash
 pip3 install accustom -t .
-zip code.zip function.py accustom -r 
+zip code.zip * -r 
 ```
 
 ## Quickstart

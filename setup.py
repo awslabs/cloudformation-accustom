@@ -32,6 +32,10 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
     packages = ['accustom', 'accustom.Exceptions'],
-    install_requires=find_packages(),
+    install_requires=[
+        'botocore>=1.10',
+        'boto3>=1.8',
+        'requests>=2.0'
+    ],
     python_requires='>=3, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, <4',
     )
