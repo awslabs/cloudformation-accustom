@@ -30,9 +30,16 @@ from .response import ResponseObject
 import six
 from boto3 import client
 from botocore.client import Config
-from botocore.vendored import requests
 
 logger = logging.getLogger(__name__)
+
+# Import Requests
+try:
+    import requests
+except ImportError:
+    from botocore.vendored import requests
+    logger.warning("botocore.vendored version of requests is deprecated. Please include requests in your code bundle.")
+
 
 # Time in milliseconds to set the alarm for (in milliseconds)
 # Should be set to twice the worst case response time to send to S3
