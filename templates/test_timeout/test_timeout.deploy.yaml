@@ -9,7 +9,7 @@ Resources:
       Handler: test_timeout.handler
       MemorySize: 256
       Role: !GetAtt FullRole.Arn
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 40
 
   BypassFunction:
@@ -19,7 +19,7 @@ Resources:
       Handler: test_timeout.handler
       MemorySize: 256
       Role: !GetAtt MissingRole.Arn
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 40
 
   TimeoutFunction:
@@ -29,7 +29,7 @@ Resources:
       Handler: test_timeout.handler
       MemorySize: 256
       Role: !GetAtt FullRole.Arn
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 20
 
   NoConnectFunction:
@@ -43,7 +43,7 @@ Resources:
       Handler: test_timeout.handler
       MemorySize: 256
       Role: !GetAtt FullRole.Arn
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 40
       VpcConfig:
         SecurityGroupIds:
