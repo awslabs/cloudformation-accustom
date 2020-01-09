@@ -5,9 +5,6 @@ This library was written based upon the same decorator methods used by the [cfnl
 
 This library provides a cfnresponse method, some helper static classes, and some decorator methods to help with the function.
 
-### Python Version
-This library only supports Python3.6. If you would like to adapt this library to Python2.7 please feel free to adapt it and provide a pull request, or provide your reason for requiring Python2.7 support on this [Issue](https://github.com/NightKhaos/accustom/issues/7). The reason it does not support Python2.7 is because of the use of `nonlocal` objects inside the decorators. I have used the `six` library throughout to try and make this code theoretically Python2.7 compatiable but it has not been tested in Python2.7 in any capacity. In theory, if you fix the scope issues it should "just work". Good luck!
-
 ## Installation
 
 accustom can be found under PyPI at [https://pypi.python.org/pypi/accustom](https://pypi.python.org/pypi/accustom).
