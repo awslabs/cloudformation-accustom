@@ -1,12 +1,12 @@
 package: test_timeout.deploy.ready.yaml
 
-%.deploy.ready.yaml: %.deploy.yaml %.code.zip
+%.deploy.ready.yaml: %.deploy.yaml %.zip
 ifndef BUCKET_TO_DEPLOY
 	$(error BUCKET_TO_DEPLOY is undefined)
 endif
 	aws cloudformation package --template-file $< --s3-bucket ${BUCKET_TO_DEPLOY} --output-template-file $@
 
-%.code.zip: %.code.py accustom.egg-info clean_code
+%.zip: %.py accustom.egg-info clean_code
 	mkdir -p code_tmp
 	python3 -m pip install -r accustom.egg-info/requires.txt -t code_tmp
 	cp -a ../../accustom code_tmp/
@@ -20,10 +20,9 @@ accustom.egg-info:
 	ln -s ../../accustom.egg-info .
 
 clean: clean_code
-	rm -f *.code.zip *.deploy.ready.yaml
+	rm -f *.zip *.deploy.ready.yaml
 
 clean_code:
 	rm -fdr code_tmp
 
 .PHONY: package clean clean_code accustom.egg-info
-gs

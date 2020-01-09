@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  This template tests the deployed function and executes it. It should fail to complete in time and not timeout.
+Resources:
+  SuccessExecution:
+    Type: Custom::SuccessFunction
+    Properties:
+      ServiceToken: !ImportValue ST-SuccessFunction
+  BypassExecution:
+    Type: Custom::BypassFunction
+    Properties:
+      ServiceToken: !ImportValue ST-BypassFunction
+  TimeoutExecution:
+    DependsOn:
+      - BypassExecution
+      - SuccessExecution
+    Type: Custom::TimeoutFunction
+    Properties:
+      ServiceToken: !ImportValue ST-TimeoutFunction

@@ -1,6 +1,174 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: 2010-09-09
 Description: >
   This template deploys accustom using a function that will timeout before it completes.
 Resources:
-  AccustomFunction:
+  SuccessFunction:
     Type: AWS::Lambda::Function
+    Properties:
+      Code: test_timeout.zip
+      Handler: test_timeout.handler
+      MemorySize: 256
+      Role: !GetAtt FullRole.Arn
+      Runtime: python3.7
+      Timeout: 40
+
+  BypassFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code: test_timeout.zip
+      Handler: test_timeout.handler
+      MemorySize: 256
+      Role: !GetAtt MissingRole.Arn
+      Runtime: python3.7
+      Timeout: 40
+
+  TimeoutFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code: test_timeout.zip
+      Handler: test_timeout.handler
+      MemorySize: 256
+      Role: !GetAtt FullRole.Arn
+      Runtime: python3.7
+      Timeout: 20
+
+  NoConnectFunction:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - S3Endpoint
+      - RouteTableAssociation
+      - LogsEndpoint
+    Properties:
+      Code: test_timeout.zip
+      Handler: test_timeout.handler
+      MemorySize: 256
+      Role: !GetAtt FullRole.Arn
+      Runtime: python3.7
+      Timeout: 40
+      VpcConfig:
+        SecurityGroupIds:
+          - !GetAtt SecurityGroup.GroupId
+        SubnetIds:
+          - !Ref Subnet
+
+  FullRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: invokeFunction
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                  - logs:*
+                  - ec2:*
+                Resource: '*'
+  MissingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: invokeFunction
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:*
+                  - ec2:*
+                Resource: '*'
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      EnableDnsSupport: True
+      EnableDnsHostnames: True
+      CidrBlock: 10.0.0.0/16
+
+  Subnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.0.0/20
+      MapPublicIpOnLaunch: False
+      VpcId: !Ref VPC
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTable
+      SubnetId: !Ref Subnet
+
+  S3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      RouteTableIds:
+        - !Ref RouteTable
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcEndpointType: Gateway
+      VpcId: !Ref VPC
+
+  LogsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PrivateDnsEnabled: True
+      SecurityGroupIds:
+        - !GetAtt SecurityGroup.GroupId
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.logs
+      SubnetIds:
+        - !Ref Subnet
+      VpcEndpointType: Interface
+      VpcId: !Ref VPC
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: AllowAllVPCTraffic
+      SecurityGroupIngress:
+        - CidrIp: 10.0.0.0/16
+          IpProtocol: -1
+      VpcId: !Ref VPC
+
+
+Outputs:
+  SuccessFunctionArn:
+    Value: !GetAtt SuccessFunction.Arn
+    Export:
+      Name: ST-SuccessFunction
+  BypassFunctionArn:
+    Value: !GetAtt BypassFunction.Arn
+    Export:
+      Name: ST-BypassFunction
+  TimeoutFunctionArn:
+    Value: !GetAtt TimeoutFunction.Arn
+    Export:
+      Name: ST-TimeoutFunction
+  NoConnectFunctionArn:
+    Value: !GetAtt NoConnectFunction.Arn
+    Export:
+      Name: ST-NoConnectFunction

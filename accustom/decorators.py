@@ -30,6 +30,7 @@ from .response import ResponseObject
 import six
 from boto3 import client
 from botocore.client import Config
+from botocore import exceptions as bexceptions
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +40,13 @@ try:
 except ImportError:
     from botocore.vendored import requests
     logger.warning("botocore.vendored version of requests is deprecated. Please include requests in your code bundle.")
+import urllib3.exceptions
 
 
 # Time in milliseconds to set the alarm for (in milliseconds)
 # Should be set to twice the worst case response time to send to S3
-# Setting to 4 seconds for safety
-TIMEOUT_THRESHOLD = 4000
+# Setting to 2 seconds for safety
+TIMEOUT_THRESHOLD = 2000
 
 
 def decorator(enforceUseOfClass: bool = False, hideResourceDeleteFailure: bool = False,
@@ -140,40 +142,26 @@ def decorator(enforceUseOfClass: bool = False, hideResourceDeleteFailure: bool =
                         response.get('Payload', ''.encode('UTF-8'))
                         return payload.decode()
 
-                except (client.exceptions.EC2AccessDeniedException, client.exceptions.KMSAccessDeniedException,
-                        client.exceptions.KMSDisabledException) as e:
+                except bexceptions.ClientError as e:
                     logger.warning('Caught exception %s while trying to invoke function. Running handler locally.'
                                    % str(e))
                     logger.warning('You cannot use the timeoutFunction option without the ability for the function to' +
                                    ' invoke itself. To suppress this warning, set timeoutFunction to False')
-                except (client.exceptions.EC2ThrottledException, client.exceptions.ENILimitReachedException,
-                        client.exceptions.TooManyRequestsException,
-                        client.exceptions.SubnetIPAddressLimitReachedException) as e:
-                    logger.error('Caught exception %s while trying to invoke function. Running handler locally.'
-                                 % str(e))
-                    logger.error('You should make sure you have enough capacity and high enough limits to execute the' +
-                                 ' chained function.')
-                except (client.exceptions.EC2UnexpectedException, client.exceptions.InvalidParameterValueException,
-                        client.exceptions.InvalidRequestContentException, client.exceptions.InvalidRuntimeException,
-                        client.exceptions.InvalidSecurityGroupIDException, client.exceptions.InvalidSubnetIDException,
-                        client.exceptions.InvalidZipFileException, client.exceptions.KMSInvalidStateException,
-                        client.exceptions.KMSNotFoundException, client.exceptions.RequestTooLargeException,
-                        client.exceptions.ResourceNotFoundException, client.exceptions.ServiceException,
-                        client.exceptions.UnsupportedMediaTypeException) as e:
-                    logger.error('Caught exception %s while trying to invoke function. Running handler locally.'
-                                 % str(e))
-                except requests.exceptions.ConnectionError as e:
-                    logger.warning('Got error %s while trying to invoke function. Running handler locally' % str(e))
-                    logger.warning('You cannot use the timeoutFunction option without the ability to connect to the ' +
-                                   'Lambda API from within the function. To suppress this warning, set ' +
-                                   'timeoutFunction to False')
-                except requests.exceptions.ReadTimeout:
+                except bexceptions.ConnectionError as e:
+                    logger.error('Got error %s while trying to invoke function. Running handler locally' % str(e))
+                    logger.error('You cannot use the timeoutFunction option without the ability to connect to the ' +
+                                 'Lambda API from within the function. As we may not have time to execute the ' +
+                                 'function, returning failure.')
+                    return ResponseObject(reason='Unable to call Lambda to do chained invoke, returning failure.',
+                                          responseStatus=Status.FAILED).send(event,context)
+                except bexceptions.ReadTimeoutError:
                     # This should be a critical failure
                     logger.error('Waited the read timeout and function did not return, returning an error')
                     return ResponseObject(reason='Lambda function timed out, returning failure.',
                                           responseStatus=Status.FAILED).send(event, context)
                 except Exception as e:
-                    message = 'Got an exception I did not understand while trying to invoke child function: %s' % str(e)
+                    message = 'Got an %s I did not understand while trying to invoke child function: %s' % (e.__class__,
+                                                                                                            str(e))
                     logger.error(message)
                     return ResponseObject(reason=message, responseStatus=Status.FAILED).send(event, context)
 
