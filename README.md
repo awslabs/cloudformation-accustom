@@ -106,7 +106,19 @@ To construct a response object you can provide the following optional parameters
 - `responseStatus` (accustom.Status): response Status to use in the response Object, defaults to `SUCCESS`
 - `squashPrintResponse` (Boolean) : In `DEBUG` logging the function will often print out the `Data` section of the response. If the `Data` contains confidential information you'll want to squash this output. This option, when set to `True`, will squash the output.
 
-## Redacting Confidential Information From Logs
+## Logging Recommendations
+The decorators utilise the [logging](https://docs.python.org/3/library/logging.html) library for logging. It is strongly
+recommended that your function does the same, and sets the logging level to at least `INFO`. Ensure the log level is set
+_before_ importing Accustom. If logging in `DEBUG` mode se below:
+
+```python
+import logging
+logger = logging.getLogger(__name__)
+logging.getLogger().setLevel(logging.INFO)
+import accustom
+```
+
+## Redacting Confidential Information From `DEBUG` Logs
 If you often pass confidential information like passwords and secrets in properties to Custom Resources, you may want to prevent certain properties from being printed to debug logs. To help with this we provide a functionality to either blacklist or whitelist Resource Properties based upon provided regular expressions.
 
 To utilise this functionality you must initialise and include a `RedactionConfig`. A `RedactionConfig` consists of some flags to define the redaction mode and if the response URL should be redacted, as well as a series of `RedactionRuleSet` objects that define what to redact based upon regular expressions. There is a special case of `RedactionConfig` called a `StandaloneRedactionConfig` that has one, and only one, `RedactionRuleSet` that is provided at initialisation.
@@ -169,8 +181,8 @@ rc.add_rule_set(ruleSetCustom)
     
 @decorator(redactConfig=rc)
 def resource_handler(event, context):
-    sum = (float(event['ResourceProperties']['key1']) +
-           float(event['ResourceProperties']['key2']))
+    sum = (float(event['ResourceProperties']['Test']) +
+           float(event['ResourceProperties']['Example']))
     return { 'sum' : sum }
 ```
 
@@ -181,15 +193,6 @@ The timeout is implemented using a *synchronous chained invocation* of your Lamb
 - The function must have permission to self invoke (i.e. lambda:InvokeFunction permission).
 
 If your requirements violate any of these conditions, set the `timeoutFunction` option to `False`. Please also note that this will *double* the invocations per request, so if you're not in the free tier for Lambda make sure you are aware of this as it may increase costs.
-
-## Logging Recommendations
-The decorators utilise the [logging](https://docs.python.org/3/library/logging.html) library for logging. It is strongly recommended that your function does the same, and sets the logging level to at least INFO:
-
-```python
-import logging
-logger = logging.getLogger(__name__)
-logging.getLogger().setLevel(logging.INFO)
-```
 
 ## Constants
 We provide there constants for ease of use:
