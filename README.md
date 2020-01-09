@@ -195,7 +195,7 @@ The timeout is implemented using a *synchronous chained invocation* of your Lamb
 If your requirements violate any of these conditions, set the `timeoutFunction` option to `False`. Please also note that this will *double* the invocations per request, so if you're not in the free tier for Lambda make sure you are aware of this as it may increase costs.
 
 ## Constants
-We provide there constants for ease of use:
+We provide three constants for ease of use:
 
 - Static value : how to access
 
