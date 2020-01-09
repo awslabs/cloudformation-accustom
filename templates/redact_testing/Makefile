@@ -1,4 +1,4 @@
-package: test_timeout.deploy.ready.yaml
+package: redact_testing.deploy.ready.yaml
 
 %.deploy.ready.yaml: %.deploy.yaml %.zip
 ifndef BUCKET_TO_DEPLOY

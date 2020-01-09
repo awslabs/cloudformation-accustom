@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  This template tests the deployed function and executes it. It should fail to complete in time and not timeout.
+Resources:
+  Test1Execution:
+    Type: Custom::HelloWorld
+    Properties:
+      ServiceToken: !ImportValue ST-Function
+      Test: Unredacted
+      Example: Unredacted
+      Custom: Unredacted
+      DeleteMe: Unredacted
+      DeleteMeExtended: Unredacted
+      Unredacted: Unredacted
+  Test2Execution:
+    Type: Custom::Test
+    Properties:
+      ServiceToken: !ImportValue ST-Function
+      Test: Unredacted
+      Example: Unredacted
+      Custom: Unredacted
+      DeleteMe: Unredacted
+      DeleteMeExtended: Unredacted
+      Unredacted: Unredacted

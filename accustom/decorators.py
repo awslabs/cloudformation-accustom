@@ -117,7 +117,7 @@ def decorator(enforceUseOfClass: bool = False, hideResourceDeleteFailure: bool =
                 logger.info('Request has been invoked in Lambda with timeoutFunction set, attempting to invoke self')
                 pevent = event.copy()
                 pevent['LambdaParentRequestId'] = context.aws_request_id
-                payload = json.dumps(pevent).encode('utf-8')
+                payload = json.dumps(pevent).encode('UTF-8')
                 timeout = (context.get_remaining_time_in_millis() - TIMEOUT_THRESHOLD) / 1000
                 # Edge case where time is set to very low timeout, use half the timeout threshold as the timeout for the
                 # the Lambda Function
@@ -170,7 +170,7 @@ def decorator(enforceUseOfClass: bool = False, hideResourceDeleteFailure: bool =
                 if context is not None:
                     logger.debug('Running request with Lambda RequestId: %s' % context.aws_request_id)
                 if redactConfig is not None and isinstance(redactConfig, (StandaloneRedactionConfig, RedactionConfig)):
-                    logger.debug('Request Body:\n' + json.dumps(redactConfig._redact(event))).encode('utf-8')
+                    logger.debug('Request Body:\n' + json.dumps(redactConfig._redact(event)))
                 elif redactConfig is not None:
                     logger.warning('A non valid RedactionConfig was provided, and ignored')
                     logger.debug('Request Body:\n' + json.dumps(event))

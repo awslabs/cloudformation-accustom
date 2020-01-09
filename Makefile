@@ -6,12 +6,12 @@ egg-info: accustom.egg-info
 accustom.egg-info:
 	python setup.py egg_info
 
-clean: clean-egg clean-build
+clean: clean_build clean_egg
 
-clean-egg:
+clean_egg:
 	rm -fdr accustom.egg-info
 
-clean-build:
+clean_build:
 	rm -fdr dist
 
-.PHONY: build egg-info clean clean-egg clean-build
+.PHONY: build egg-info clean clean_egg clean_build
