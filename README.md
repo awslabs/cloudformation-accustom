@@ -12,7 +12,7 @@ accustom can be found under PyPI at [https://pypi.python.org/pypi/accustom](http
 To install:
 
 ```bash
-pip3 install accustom
+python3 -m pip install accustom
 ```
 
 To create a Lambda Code Zip with accustom and dependencies  (including `requests`), create a directory with only your
@@ -20,7 +20,7 @@ code in it and run the following. Alternatively you can create a Lambda Layer wi
 and use that as your base layer for custom resources.  
 
 ```bash
-pip3 install accustom -t .
+python3 -m pip install accustom -t .
 zip code.zip * -r 
 ```
 
