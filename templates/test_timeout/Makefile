@@ -8,7 +8,7 @@ endif
 
 %.code.zip: %.code.py accustom.egg-info clean_code
 	mkdir -p code_tmp
-	pip install -r accustom.egg-info/requires.txt -t code_tmp
+	python3 -m pip install -r accustom.egg-info/requires.txt -t code_tmp
 	cp -a ../../accustom code_tmp/
 	cp $< code_tmp/
 	cd code_tmp; zip $@ * -r
@@ -26,3 +26,4 @@ clean_code:
 	rm -fdr code_tmp
 
 .PHONY: package clean clean_code accustom.egg-info
+gs
