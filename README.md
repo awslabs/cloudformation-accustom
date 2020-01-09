@@ -15,8 +15,9 @@ To install:
 pip3 install accustom
 ```
 
-To create a Lambda Code Zip with accustom and dependencies including (`requests`), create a directory with only your
-code in it and run the following:
+To create a Lambda Code Zip with accustom and dependencies  (including `requests`), create a directory with only your
+code in it and run the following. Alternatively you can create a Lambda Layer with Accustom and dependencies installed
+and use that as your base layer for custom resources.  
 
 ```bash
 pip3 install accustom -t .
