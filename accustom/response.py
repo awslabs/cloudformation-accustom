@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """ ResponseObject and cfnresponse function for the accustom library
 
 This allows you to communicate with CloudFormation
@@ -147,7 +150,7 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
     responseBody['StackId'] = event['StackId']
     responseBody['RequestId'] = event['RequestId']
     responseBody['LogicalResourceId'] = event['LogicalResourceId']
-    if responseData is not None: responseBody['Data'] = responseData 
+    if responseData is not None: responseBody['Data'] = responseData
     if squashPrintResponse: responseBody['NoEcho'] = 'true'
 
     json_responseBody = json.dumps(responseBody)
