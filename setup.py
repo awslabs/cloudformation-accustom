@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name='accustom',
-    version='1.1.0',
+    version='1.1.1',
     description='Accustom is a library for responding to Custom Resources in AWS CloudFormation using the decorator '
                 'pattern.',
     long_description=read('README.md'),
@@ -20,7 +20,7 @@ setup(
     author='Taylor Bertie',
     author_email='bertiet@amazon.com',
     license='Apache-2.0',
-    download_url='https://github.com/awslabs/cloudformation-accustom/archive/1.1.0.tar.gz',
+    download_url='https://github.com/awslabs/cloudformation-accustom/archive/1.1.1.tar.gz',
     keywords=['cloudformation', 'lambda', 'custom', 'resource', 'decorator'],
     classifiers=[
         # How mature is this project? Common values are
@@ -43,9 +43,9 @@ setup(
     ],
     packages=['accustom', 'accustom.Exceptions'],
     install_requires=[
-        'botocore>=1.10',
-        'boto3>=1.8',
-        'requests>=2.0'
+        'botocore>=1.20',
+        'boto3>=1.17',
+        'requests>=2.20'
     ],
     python_requires='>=3, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, !=3.6.*, <4',
 )
