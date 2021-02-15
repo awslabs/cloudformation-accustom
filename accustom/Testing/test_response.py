@@ -12,7 +12,7 @@ import requests_mock
 from unittest import TestCase, main as umain
 
 
-class valid_event_tests(TestCase):
+class ValidEventTests(TestCase):
     def test_missing_field(self):
         event = {
             "RequestType": RequestType.CREATE,
@@ -69,7 +69,7 @@ class valid_event_tests(TestCase):
         self.assertTrue(is_valid_event(event))
 
 
-class cfnresponseTests(TestCase):
+class ResponseTests(TestCase):
     pass
     # TODO: Implement size response function tests
 
