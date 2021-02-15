@@ -44,7 +44,6 @@ try:
     import requests
 except ImportError:
     from botocore.vendored import requests
-
     logger.warning("botocore.vendored version of requests is deprecated. Please include requests in your code bundle.")
 
 # Time in milliseconds to set the alarm for (in milliseconds)
