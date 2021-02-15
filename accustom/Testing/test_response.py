@@ -74,12 +74,14 @@ class ValidEventTests(TestCase):
 
 class ResponseTests(TestCase):
     pass
+    # TODO: Implement size response function tests
+
 
 
 class ResponseObjectTests(TestCase):
     pass
+    # TODO: Implement response object tests
 
-    # TODO: Implement response tests
 
 
 if __name__ == '__main__':

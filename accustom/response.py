@@ -13,6 +13,7 @@ from .Exceptions import NoPhysicalResourceIdException
 from .Exceptions import InvalidResponseStatusException
 from .Exceptions import FailedToSendResponseException
 from .Exceptions import NotValidRequestObjectException
+from .Exceptions import ResponseTooLongException
 
 # Constants
 from .constants import Status
@@ -26,6 +27,7 @@ import six
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
+CUSTOM_RESOURCE_SIZE_LIMIT = 4096
 
 # Import Requests
 try:
@@ -110,6 +112,7 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
         DataIsNotDictException
         FailedToSendResponseException
         NotValidRequestObjectException
+        ResponseTooLongException
 
     """
     if not is_valid_event(event):
@@ -156,6 +159,12 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
     if squashPrintResponse: responseBody['NoEcho'] = 'true'
 
     json_responseBody = json.dumps(responseBody)
+    json_responseSize = sys.getsizeof(json_responseBody)
+    logger.debug("Determined size of message to %dn bytes" % json_responseSize)
+
+    if json_responseSize >= CUSTOM_RESOURCE_SIZE_LIMIT:
+        raise ResponseTooLongException("Response ended up %dn bytes long which exceeds %dn."
+                                       "bytes" % (json_responseSize, CUSTOM_RESOURCE_SIZE_LIMIT))
 
     logger.info("Sending response to pre-signed URL.")
     logger.debug("URL: %s" % responseUrl)
@@ -163,7 +172,7 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
 
     headers = {
         'content-type': '',
-        'content-length': str(len(json_responseBody))
+        'content-length': str(json_responseSize)
     }
 
     # Flush the buffers to attempt to prevent log truncations when resource is deleted
@@ -260,6 +269,7 @@ class ResponseObject(object):
             DataIsNotDictException
             FailedToSendResponseException
             NotValidRequestObjectException
+            ResponseTooLongException
         """
         return cfnresponse(event, self.responseStatus, self.reason, self.data, self.physicalResourceId, context,
                            self.squashPrintResponse)
