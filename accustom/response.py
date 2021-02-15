@@ -78,6 +78,38 @@ def is_valid_event(event: dict) -> bool:
     return True
 
 
+def collapse_data(response_data: dict):
+    """This function takes in a dictionary and collapses it into single object keys
+
+    For example it would translate something like this:
+
+    { "Address" { "Street" : "Apple Street" }}
+
+    Into this:
+
+    { "Address.Street" : "Apple Street" }
+
+    Where there is a explict instance of a dot-notated item, this will override any collapsed items
+
+    Args:
+        response_data (dict): The data object that needs to be collapsed
+    Returns:
+        dict: collapsed response data with higher level keys removed and replaced with dot-notation
+    """
+
+    for item in list(response_data):
+        if isinstance(response_data[item], dict):
+            response_data[item] = collapse_data(response_data[item])
+            for citem in response_data[item]:
+                new_key = "%s.%s" % (item, citem)
+                if new_key not in response_data:
+                    # This if statement prevents overrides of existing keys
+                    response_data[new_key] = response_data[item][citem]
+            del response_data[item]
+
+    return response_data
+
+
 def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, responseData: dict = None,
                 physicalResourceId: str = None, context: dict = None, squashPrintResponse: bool = False):
     """Format and send CloudFormation Custom Resource Objects
@@ -155,7 +187,7 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
     responseBody['StackId'] = event['StackId']
     responseBody['RequestId'] = event['RequestId']
     responseBody['LogicalResourceId'] = event['LogicalResourceId']
-    if responseData is not None: responseBody['Data'] = responseData
+    if responseData is not None: responseBody['Data'] = collapse_data(responseData)
     if squashPrintResponse: responseBody['NoEcho'] = 'true'
 
     json_responseBody = json.dumps(responseBody)
