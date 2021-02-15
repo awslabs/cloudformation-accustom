@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
   This template tests the deployed function and executes it. It should fail to complete in time and not timeout.

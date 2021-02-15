@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 from accustom import is_valid_event
 from accustom import cfnresponse
 from accustom import ResponseObject

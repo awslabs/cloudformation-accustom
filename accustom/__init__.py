@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # Import classes, functions, and submodules to be accessible from library
 from .constants import Status
 from .constants import RequestType
