@@ -10,6 +10,7 @@ from .Exceptions import NoPhysicalResourceIdException
 from .Exceptions import InvalidResponseStatusException
 from .Exceptions import FailedToSendResponseException
 from .Exceptions import NotValidRequestObjectException
+from .Exceptions import ResponseTooLongException
 
 # Constants
 from .constants import Status
@@ -23,13 +24,16 @@ import six
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
+CUSTOM_RESOURCE_SIZE_LIMIT = 4096
 
 # Import Requests
 try:
     import requests
 except ImportError:
     from botocore.vendored import requests
+
     logger.warning("botocore.vendored version of requests is deprecated. Please include requests in your code bundle.")
+
 
 def is_valid_event(event: dict) -> bool:
     """This function takes in a CloudFormation Request Object and checks for the required fields as per:
@@ -43,12 +47,12 @@ def is_valid_event(event: dict) -> bool:
 
     """
     if not (all(v in event for v in (
-        'RequestType',
-        'ResponseURL',
-        'StackId',
-        'RequestId',
-        'ResourceType',
-        'LogicalResourceId'
+            'RequestType',
+            'ResponseURL',
+            'StackId',
+            'RequestId',
+            'ResourceType',
+            'LogicalResourceId'
     ))):
         # Check we have all the required fields
         return False
@@ -105,6 +109,7 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
         DataIsNotDictException
         FailedToSendResponseException
         NotValidRequestObjectException
+        ResponseTooLongException
 
     """
     if not is_valid_event(event):
@@ -135,7 +140,7 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
                                                                                      context.log_stream_name)
 
     elif context is not None and responseReason is None:
-            responseReason = "See the details in CloudWatch Log Stream: %s" % context.log_stream_name
+        responseReason = "See the details in CloudWatch Log Stream: %s" % context.log_stream_name
 
     responseUrl = event['ResponseURL']
 
@@ -147,10 +152,16 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
     responseBody['StackId'] = event['StackId']
     responseBody['RequestId'] = event['RequestId']
     responseBody['LogicalResourceId'] = event['LogicalResourceId']
-    if responseData is not None: responseBody['Data'] = responseData 
+    if responseData is not None: responseBody['Data'] = responseData
     if squashPrintResponse: responseBody['NoEcho'] = 'true'
 
     json_responseBody = json.dumps(responseBody)
+    json_responseSize = sys.getsizeof(json_responseBody)
+    logger.debug("Determined size of message to %dn bytes" % json_responseSize)
+
+    if json_responseSize >= CUSTOM_RESOURCE_SIZE_LIMIT:
+        raise ResponseTooLongException("Response ended up %dn bytes long which exceeds %dn."
+                                       "bytes" % (json_responseSize, CUSTOM_RESOURCE_SIZE_LIMIT))
 
     logger.info("Sending response to pre-signed URL.")
     logger.debug("URL: %s" % responseUrl)
@@ -158,7 +169,7 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
 
     headers = {
         'content-type': '',
-        'content-length': str(len(json_responseBody))
+        'content-length': str(json_responseSize)
     }
 
     # Flush the buffers to attempt to prevent log truncations when resource is deleted
@@ -193,6 +204,7 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
 
 class ResponseObject(object):
     """Class that allows you to init a ResponseObject for easy function writing"""
+
     def __init__(self, data: dict = None, physicalResourceId: str = None, reason: str = None,
                  responseStatus: str = Status.SUCCESS, squashPrintResponse: bool = False):
         """Init function for the class
@@ -254,6 +266,7 @@ class ResponseObject(object):
             DataIsNotDictException
             FailedToSendResponseException
             NotValidRequestObjectException
+            ResponseTooLongException
         """
         return cfnresponse(event, self.responseStatus, self.reason, self.data, self.physicalResourceId, context,
                            self.squashPrintResponse)

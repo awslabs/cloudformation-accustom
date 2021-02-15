@@ -9,6 +9,8 @@ from .Exceptions import FailedToSendResponseException
 from .Exceptions import DataIsNotDictException
 from .Exceptions import InvalidResponseStatusException
 from .Exceptions import NotValidRequestObjectException
+from .Exceptions import ResponseTooLongException
+from .Exceptions import NoPhysicalResourceIdException
 
 # Constants
 from .constants import RequestType
@@ -39,9 +41,9 @@ try:
     import requests
 except ImportError:
     from botocore.vendored import requests
+
     logger.warning("botocore.vendored version of requests is deprecated. Please include requests in your code bundle.")
 import urllib3.exceptions
-
 
 # Time in milliseconds to set the alarm for (in milliseconds)
 # Should be set to twice the worst case response time to send to S3
@@ -153,7 +155,7 @@ def decorator(enforceUseOfClass: bool = False, hideResourceDeleteFailure: bool =
                                  'Lambda API from within the function. As we may not have time to execute the ' +
                                  'function, returning failure.')
                     return ResponseObject(reason='Unable to call Lambda to do chained invoke, returning failure.',
-                                          responseStatus=Status.FAILED).send(event,context)
+                                          responseStatus=Status.FAILED).send(event, context)
                 except bexceptions.ReadTimeoutError:
                     # This should be a critical failure
                     logger.error('Waited the read timeout and function did not return, returning an error')
@@ -246,22 +248,47 @@ def decorator(enforceUseOfClass: bool = False, hideResourceDeleteFailure: bool =
 
             try:
                 return_value = result.send(event, context)
-            except Exception as e:
-                if isinstance(e, FailedToSendResponseException):
-                    raise e
-                logger.error('Malformed request, Exception: %s' % str(e))
-                if result.data is not None and not isinstance(e, DataIsNotDictException):
-                    if not result.squashPrintResponse:
-                        logger.debug('Data:\n' + json.dumps(result.data))
-                    else:
-                        logger.debug('Data: [REDACTED]')
-                if result.reason is not None: logger.debug('Reason: %s' % result.reason)
-                if result.physicalResourceId is not None: logger.debug('PhysicalResourceId: %s'
-                                                                       % result.physicalResourceId)
-                if not isinstance(e, InvalidResponseStatusException): logger.debug('Status: %s'
-                                                                                   % result.responseStatus)
+            except NoPhysicalResourceIdException:
+                message = "An unexpected error has occurred, No Physical Resource ID provided in response."
+                logger.error(message)
                 result = ResponseObject(
-                    reason='Malformed request, Exception: %s' % str(e),
+                    reason=message,
+                    physicalResourceId=result.physicalResourceId,
+                    responseStatus=Status.FAILED)
+                return_value = result.send(event, context)
+            except InvalidResponseStatusException:
+                message = 'Status provided "%s" is not a valid status.' % result.responseStatus
+                logger.error(message)
+                result = ResponseObject(
+                    reason=message,
+                    physicalResourceId=result.physicalResourceId,
+                    responseStatus=Status.FAILED)
+                return_value = result.send(event, context)
+            except DataIsNotDictException as e:
+                message = 'Malformed Data Block in Response, Exception; %s' % str(e)
+                logger.error(message)
+                result = ResponseObject(
+                    reason=message,
+                    physicalResourceId=result.physicalResourceId,
+                    responseStatus=Status.FAILED)
+                return_value = result.send(event, context)
+            except ResponseTooLongException as e:
+                message = str(e)
+                logger.error(message)
+                result = ResponseObject(
+                    reason=message,
+                    physicalResourceId=result.physicalResourceId,
+                    responseStatus=Status.FAILED)
+                return_value = result.send(event, context)
+            except FailedToSendResponseException as e:
+                # Capturing and re-raising exception to prevent generic exception handler from kicking in
+                raise e
+            except Exception as e:
+                # Generic error capture
+                message ='Malformed request, Exception: %s' % str(e)
+                logger.error(message)
+                result = ResponseObject(
+                    reason=message,
                     physicalResourceId=result.physicalResourceId,
                     responseStatus=Status.FAILED)
                 return_value = result.send(event, context)
