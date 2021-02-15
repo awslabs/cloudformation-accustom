@@ -1,7 +1,7 @@
 import logging
-logging.getLogger().setLevel(logging.DEBUG)
-
 from accustom import RedactionRuleSet, RedactionConfig, decorator
+
+logging.getLogger().setLevel(logging.DEBUG)
 
 ruleSetDefault = RedactionRuleSet()
 ruleSetDefault.add_property_regex('^Test$')
@@ -17,9 +17,10 @@ rc.add_rule_set(ruleSetCustom)
 
 logger = logging.getLogger(__name__)
 
+
 @decorator(hideResourceDeleteFailure=True,
            timeoutFunction=False,
            redactConfig=rc)
-def handler(event,context):
+def handler(event, context):
     # No action actually required since we'll be looking at CW Logs.
     pass

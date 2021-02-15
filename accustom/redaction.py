@@ -39,11 +39,11 @@ class RedactionRuleSet(object):
         self.resourceRegex = resourceRegex
         self._properties = []
 
-    def add_property_regex(self, propertiesRegex : str):
-        """Allows you to add a property regex to whitelist/blacklist
+    def add_property_regex(self, propertiesRegex: str):
+        """Allows you to add a property regex to allowlist/blocklist
 
         Args:
-            propertiesRegex (String): The regex used to work out what properties to whitelist/blacklist
+            propertiesRegex (String): The regex used to work out what properties to allowlist/blocklist
 
         Raises:
             TypeError
@@ -54,10 +54,10 @@ class RedactionRuleSet(object):
         self._properties.append(propertiesRegex)
 
     def add_property(self, propertyName: str):
-        """Allows you to add a specific property to whitelist/blacklist
+        """Allows you to add a specific property to allowlist/blocklist
 
         Args:
-            propertyName (String): The name of the property to whitelist/blacklist
+            propertyName (String): The name of the property to allowlist/blocklist
 
         Raises:
             TypeError
@@ -71,12 +71,12 @@ class RedactionRuleSet(object):
 class RedactionConfig(object):
     """Class that allows you define a redaction policy for accustom"""
 
-    def __init__(self, redactMode: str = RedactMode.BLACKLIST, redactResponseURL: bool = False):
+    def __init__(self, redactMode: str = RedactMode.BLOCKLIST, redactResponseURL: bool = False):
         """Init function for the class
 
         Args:
-            redactMode (RedactMode.BLACKLIST or RedactMode.WHITELIST): Determine if we should whitelist or blacklist
-            resources, defaults to blacklist
+            redactMode (RedactMode.BLOCKLIST or RedactMode.ALLOWLIST): Determine if we should allowlist or blocklist
+            resources, defaults to blocklist
         redactResponseURL (boolean): Prevents the pre-signed URL from being printed preventing out of band responses
         (recommended for production)
 
@@ -84,7 +84,14 @@ class RedactionConfig(object):
             TypeError
 
         """
-        if redactMode != RedactMode.BLACKLIST and redactMode != RedactMode.WHITELIST:
+        if redactMode == RedactMode.BLACKLIST:
+            logger.warning("The usage of RedactMode.BLACKLIST is deprecated, please change to use RedactMode.BLOCKLIST")
+            redactMode = RedactMode.BLOCKLIST
+        if redactMode == RedactMode.WHITELIST:
+            logging.warning("The usage of RedactMode.WHITELIST is deprecated, please change to use RedactMode.ALLOWLIST")
+            redactMode = RedactMode.ALLOWLIST
+
+        if redactMode != RedactMode.BLOCKLIST and redactMode != RedactMode.ALLOWLIST:
             raise TypeError('Invalid Redaction Type')
 
         if not isinstance(redactResponseURL, bool):
@@ -125,7 +132,7 @@ class RedactionConfig(object):
             logger.error(message)
             raise NotValidRequestObjectException(message)
         ec = copy.deepcopy(event)
-        if self.redactMode == RedactMode.WHITELIST:
+        if self.redactMode == RedactMode.ALLOWLIST:
             if 'ResourceProperties' in ec: ec['ResourceProperties'] = {}
             if 'OldResourceProperties' in ec: ec['OldResourceProperties'] = {}
         for resourceRegex, propertyRegex in self._redactProperties.items():
@@ -133,21 +140,21 @@ class RedactionConfig(object):
                 # Go through the Properties looking to see if they're in the ResourceProperties or OldResourceProperties
                 for index, item in enumerate(propertyRegex):
                     r = re.compile(item)
-                    if self.redactMode == RedactMode.BLACKLIST:
+                    if self.redactMode == RedactMode.BLOCKLIST:
                         if 'ResourceProperties' in ec:
                             for mitem in filter(r.match, ec['ResourceProperties']):
                                 ec['ResourceProperties'][mitem] = REDACTED_STRING
                         if 'OldResourceProperties' in ec:
                             for mitem in filter(r.match, ec['OldResourceProperties']):
                                 ec['OldResourceProperties'][mitem] = REDACTED_STRING
-                    elif self.redactMode == RedactMode.WHITELIST:
+                    elif self.redactMode == RedactMode.ALLOWLIST:
                         if 'ResourceProperties' in ec:
                             for mitem in filter(r.match, event['ResourceProperties']):
                                 ec['ResourceProperties'][mitem] = event['ResourceProperties'][mitem]
                         if 'OldResourceProperties' in ec:
                             for mitem in filter(r.match, event['OldResourceProperties']):
                                 ec['OldResourceProperties'][mitem] = event['OldResourceProperties'][mitem]
-        if self.redactMode == RedactMode.WHITELIST:
+        if self.redactMode == RedactMode.ALLOWLIST:
             if 'ResourceProperties' in ec:
                 for key, value in event['ResourceProperties'].items():
                     if key not in ec['ResourceProperties']: ec['ResourceProperties'][key] = REDACTED_STRING
@@ -166,13 +173,13 @@ class RedactionConfig(object):
 
 
 class StandaloneRedactionConfig(RedactionConfig):
-    def __init__(self, ruleSet: RedactionRuleSet, redactMode: str = RedactMode.BLACKLIST,
+    def __init__(self, ruleSet: RedactionRuleSet, redactMode: str = RedactMode.BLOCKLIST,
                  redactResponseURL: bool = False):
         """Init function for the class
 
         Args:
-            redactMode (RedactMode.BLACKLIST or RedactMode.WHITELIST): Determine if we should whitelist or blacklist
-            resources, defaults to blacklist
+            redactMode (RedactMode.BLOCKLIST or RedactMode.ALLOWLIST): Determine if we should allowlist or blocklist
+            resources, defaults to blocklist
         redactResponseURL (boolean): Prevents the pre-signed URL from being printed preventing out of band responses
         (recommended for production)
         ruleSet (RedactionRuleSet): The single rule set to be applied

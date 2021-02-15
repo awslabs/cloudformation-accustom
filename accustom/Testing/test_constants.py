@@ -25,6 +25,12 @@ class RequestTypeTests(TestCase):
 
 
 class RedactModeTests(TestCase):
+    def test_blocklist(self):
+        self.assertEqual('block', RedactMode.BLOCKLIST)
+
+    def test_allowlist(self):
+        self.assertEqual('allow', RedactMode.ALLOWLIST)
+
     def test_blacklist(self):
         self.assertEqual('black', RedactMode.BLACKLIST)
 

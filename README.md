@@ -1,7 +1,7 @@
 # CloudFormation Accustom
 Accustom is a library for responding to Custom Resources in AWS CloudFormation using the decorator pattern.
 
-This library was written based upon the same decorator methods used by the [cfnlambda](https://github.com/gene1wood/cfnlambda) library written by Gene Wood. As that library is no longer maintained I wrote a new version.
+This library was written based upon the same decorator methods used by the [cfnlambda](https://github.com/gene1wood/cfnlambda) library written by Gene Wood. Unfortunately the library is no longer maintained I wrote a new version.
 
 This library provides a cfnresponse method, some helper static classes, and some decorator methods to help with the function.
 
@@ -32,9 +32,9 @@ The quickest way to use this library is to use the standalone decorator `@accust
 import accustom
 @accustom.sdecorator(expectedProperties=['key1','key2'])
 def resource_handler(event, context):
-     sum = (float(event['ResourceProperties']['key1']) +
+     result = (float(event['ResourceProperties']['key1']) +
             float(event['ResourceProperties']['key2']))
-     return { 'sum' : sum }
+     return { 'sum' : result }
 ```
 
 In this configuration, the decorator will check to make sure the properties `key1` and `key2` have been passed by the user, and automatically send a response back to CloudFormation based upon the `event` object.
@@ -75,7 +75,7 @@ It takes the following option:
 The most useful of these options is `expectedProperties`. With it is possible to quickly define mandatory properties for your resource and fail if they are not included.
 
 ### `@accustom.sdecorator()`
-This decorator is just a combination of `@accustom.decorator()` and `@accustom.rdecorator()`. This allows you have a single, stand alone resource handler that has some defined properties and can automatically handle delete. The options available to it is the combination of both of the options available to the other two Decorators, with the exception of `redactProperties` which takes an accustom.StandaloneRedactionConfig object instead of a accustom.RedactionConfig object. For more information on `redactProperties` see "Redacting Confidential Information From Logs".
+This decorator is just a combination of `@accustom.decorator()` and `@accustom.rdecorator()`. This allows you to have a single, stand-alone resource handler that has some defined properties and can automatically handle delete. The options available to it is the combination of both of the options available to the other two Decorators, except for `redactProperties` which takes an accustom.StandaloneRedactionConfig object instead of an accustom.RedactionConfig object. For more information on `redactProperties` see "Redacting Confidential Information From Logs".
 
 The other important note about combining these two decorators is that `hideResourceDeleteFailure` becomes redundant if `decoratorHandleDelete` is set to `True`.
 
@@ -119,30 +119,30 @@ import accustom
 ```
 
 ## Redacting Confidential Information From `DEBUG` Logs
-If you often pass confidential information like passwords and secrets in properties to Custom Resources, you may want to prevent certain properties from being printed to debug logs. To help with this we provide a functionality to either blacklist or whitelist Resource Properties based upon provided regular expressions.
+If you often pass confidential information like passwords and secrets in properties to Custom Resources, you may want to prevent certain properties from being printed to debug logs. To help with this we provide a functionality to either blocklist or allowlist Resource Properties based upon provided regular expressions.
 
 To utilise this functionality you must initialise and include a `RedactionConfig`. A `RedactionConfig` consists of some flags to define the redaction mode and if the response URL should be redacted, as well as a series of `RedactionRuleSet` objects that define what to redact based upon regular expressions. There is a special case of `RedactionConfig` called a `StandaloneRedactionConfig` that has one, and only one, `RedactionRuleSet` that is provided at initialisation.
 
-Each `RedactionRuleSet` defines a single regex that defines which ResourceTypes this rule set should applied too. You can then apply any number of rules, based upon explicit an property name, or a regex. Please see the definitions and an example below.
+Each `RedactionRuleSet` defines a single regex that defines which ResourceTypes this rule set should be applied too. You can then apply any number of rules, based upon an explicit property name, or a regex. Please see the definitions, and an example below.
 
 ### `RedactionRuleSet`
-The `RedactionRuleSet` object allows you to define a series of properties or regexes which to whitelist or blacklist for a given resource type regex. It is initialised with the following:
+The `RedactionRuleSet` object allows you to define a series of properties or regexes which to allowlist or blocklist for a given resource type regex. It is initialised with the following:
 
 - `resourceRegex` (String) : The regex used to work out what resources to apply this too.
 
 #### `add_property_regex(propertiesRegex)`
 
-- `propertiesRegex` (String) : The regex used to work out what properties to whitelist/blacklist
+- `propertiesRegex` (String) : The regex used to work out what properties to allowlist/blocklist
 
 #### `add_property(propertyName)`
 
-- `propertyName` (String) : The name of the property to whitelist/blacklist
+- `propertyName` (String) : The name of the property to allowlist/blocklist
 
 
 ### `RedactionConfig`
-The `RedactionConfig` object allows you to create a collection of `RedactionRuleSet` objects as well as define what mode (whitelist/blacklist) to use, and if the presigned URL provided by CloudFormation should be redacted from the logs.
+The `RedactionConfig` object allows you to create a collection of `RedactionRuleSet` objects as well as define what mode (allowlist/blocklist) to use, and if the presigned URL provided by CloudFormation should be redacted from the logs.
 
-- `redactMode` (accustom.RedactMode) : What redaction mode should be used, if it should be a blacklist or whitelist
+- `redactMode` (accustom.RedactMode) : What redaction mode should be used, if it should be a blocklist or allowlist
 - `redactResponseURL` (Boolean) : If the response URL should be not be logged.
 
 #### `add_rule_set(ruleSet)`
@@ -150,9 +150,9 @@ The `RedactionConfig` object allows you to create a collection of `RedactionRule
 - `ruleSet` (accustom.RedactionRuleSet) : The rule set to be added to the RedactionConfig
 
 ### `StandaloneRedactionConfig`
-The `StandaloneRedactionConfig` object allows you to apply a single `RedactionRuleSet` object as well as define what mode (whitelist/blacklist) to use, and if the presigned URL provided by CloudFormation should be redacted from the logs.
+The `StandaloneRedactionConfig` object allows you to apply a single `RedactionRuleSet` object as well as define what mode (allowlist/blocklist) to use, and if the presigned URL provided by CloudFormation should be redacted from the logs.
 
-- `redactMode` (accustom.RedactMode) : What redaction mode should be used, if it should be a blacklist or whitelist
+- `redactMode` (accustom.RedactMode) : What redaction mode should be used, if it should be a blocklist or allowlist
 - `redactResponseURL` (Boolean) : If the response URL should be not be logged.
 - `ruleSet` (accustom.RedactionRuleSet) : The rule set to be added to the RedactionConfig
 
@@ -164,7 +164,7 @@ All resources will have properties called `Test` and `Example` redacted and repl
 
 Finally, as `redactResponseURL` is set to `True`, the response URL will not be printed in the debug logs.
    
-```python
+```python3
 from accustom import RedactionRuleSet, RedactionConfig, decorator
 
 ruleSetDefault = RedactionRuleSet()
@@ -181,9 +181,9 @@ rc.add_rule_set(ruleSetCustom)
     
 @decorator(redactConfig=rc)
 def resource_handler(event, context):
-    sum = (float(event['ResourceProperties']['Test']) +
+    result = (float(event['ResourceProperties']['Test']) +
            float(event['ResourceProperties']['Example']))
-    return { 'sum' : sum }
+    return { 'sum' : result }
 ```
 
 ## Note on Timeouts and Permissions
@@ -210,8 +210,8 @@ We provide three constants for ease of use:
 
 ### `RedactMode`
 
-- Blacklisting : `accustom.RedactMode.BLACKLIST`
-- Whitelisting : `accustom.RedactMode.WHITELIST`
+- Blocklisting : `accustom.RedactMode.BLOCKLIST`
+- Allowlisting : `accustom.RedactMode.ALLOWLIST`
 
 ## How to Contribute
 Feel free to open issues, fork, or submit a pull request:

@@ -25,6 +25,9 @@ class RequestType:
 
 class RedactMode:
     """RedactMode Options"""
+    ALLOWLIST = 'allow'
+    BLOCKLIST = 'block'
 
+    # DEPRECATED NAMES
     BLACKLIST = 'black'
     WHITELIST = 'white'
