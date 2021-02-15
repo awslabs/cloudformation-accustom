@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """ Decorators for the accustom library.
 
 This includes two decorators, one for the handler function, and one to apply to any resource handling

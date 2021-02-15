@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """ ResponseObject and cfnresponse function for the accustom library
 
 This allows you to communicate with CloudFormation

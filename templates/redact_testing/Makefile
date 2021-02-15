@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 package: redact_testing.deploy.ready.yaml
 
 %.deploy.ready.yaml: %.deploy.yaml %.zip

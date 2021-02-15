@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """ RedactionConfig and StandaloneRedactConfig for the accustom library
 
 This allows you to define a redaction policy for accustom

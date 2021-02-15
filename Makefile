@@ -1,17 +1,12 @@
-build: egg-info
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+build:
 	python setup.py sdist
 
-egg-info: accustom.egg-info
-
-accustom.egg-info:
-	python setup.py egg_info
-
-clean: clean_build clean_egg
-
-clean_egg:
-	rm -fdr accustom.egg-info
+clean: clean_build
 
 clean_build:
 	rm -fdr dist
 
-.PHONY: build egg-info clean clean_egg clean_build
+.PHONY: build clean clean_build
