@@ -32,7 +32,9 @@ try:
     import requests
 except ImportError:
     from botocore.vendored import requests
+
     logger.warning("botocore.vendored version of requests is deprecated. Please include requests in your code bundle.")
+
 
 def is_valid_event(event: dict) -> bool:
     """This function takes in a CloudFormation Request Object and checks for the required fields as per:
@@ -46,12 +48,12 @@ def is_valid_event(event: dict) -> bool:
 
     """
     if not (all(v in event for v in (
-        'RequestType',
-        'ResponseURL',
-        'StackId',
-        'RequestId',
-        'ResourceType',
-        'LogicalResourceId'
+            'RequestType',
+            'ResponseURL',
+            'StackId',
+            'RequestId',
+            'ResourceType',
+            'LogicalResourceId'
     ))):
         # Check we have all the required fields
         return False
@@ -138,7 +140,7 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
                                                                                      context.log_stream_name)
 
     elif context is not None and responseReason is None:
-            responseReason = "See the details in CloudWatch Log Stream: %s" % context.log_stream_name
+        responseReason = "See the details in CloudWatch Log Stream: %s" % context.log_stream_name
 
     responseUrl = event['ResponseURL']
 
@@ -196,6 +198,7 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
 
 class ResponseObject(object):
     """Class that allows you to init a ResponseObject for easy function writing"""
+
     def __init__(self, data: dict = None, physicalResourceId: str = None, reason: str = None,
                  responseStatus: str = Status.SUCCESS, squashPrintResponse: bool = False):
         """Init function for the class

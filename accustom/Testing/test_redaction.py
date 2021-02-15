@@ -6,6 +6,7 @@ from accustom import RedactionConfig
 from accustom import StandaloneRedactionConfig
 from accustom import RedactMode
 from accustom.Exceptions import CannotApplyRuleToStandaloneRedactionConfig
+import logging
 
 from unittest import TestCase, main as umain
 
@@ -21,7 +22,7 @@ class RedactionRuleSetTests(TestCase):
     def test_init(self):
         # This test ignores the setUp resources
         rs = RedactionRuleSet('^Custom::Test$')
-        self.assertEqual(rs.resourceRegex, '^Custom::Test$')
+        self.assertEqual('^Custom::Test$', rs.resourceRegex)
 
     def test_invalid_init(self):
         # This test ignores the setUp Resources
@@ -29,7 +30,7 @@ class RedactionRuleSetTests(TestCase):
             RedactionRuleSet(0)
 
     def test_default_regex(self):
-        self.assertEqual(self.ruleSet.resourceRegex, '^.*$')
+        self.assertEqual('^.*$', self.ruleSet.resourceRegex)
 
     def test_adding_regex(self):
         self.ruleSet.add_property_regex('^Test$')
@@ -61,13 +62,29 @@ class RedactionConfigTests(TestCase):
 
     def test_defaults(self):
         rc = RedactionConfig()
-        self.assertEqual(rc.redactMode, RedactMode.BLACKLIST)
+        self.assertEqual(rc.redactMode, RedactMode.BLOCKLIST)
         self.assertFalse(rc.redactResponseURL)
 
     def test_input_values(self):
-        rc = RedactionConfig(redactMode=RedactMode.WHITELIST, redactResponseURL=True)
-        self.assertEqual(rc.redactMode, RedactMode.WHITELIST)
+        rc = RedactionConfig(redactMode=RedactMode.ALLOWLIST, redactResponseURL=True)
+        self.assertEqual(rc.redactMode, RedactMode.ALLOWLIST)
         self.assertTrue(rc.redactResponseURL)
+
+    def test_whitelist_deprecated(self):
+        with self.assertLogs(level=logging.WARNING) as captured:
+            rc = RedactionConfig(redactMode=RedactMode.WHITELIST)
+
+        self.assertEqual(1, len(captured.records))
+        self.assertEqual("The usage of RedactMode.WHITELIST is deprecated, please change to use RedactMode.ALLOWLIST",
+                         captured.records[0].getMessage())
+
+    def test_blacklist_deprecated(self):
+        with self.assertLogs(level=logging.WARNING) as captured:
+            rc = RedactionConfig(redactMode=RedactMode.BLACKLIST)
+
+        self.assertEqual(1, len(captured.records), 1)
+        self.assertEqual("The usage of RedactMode.BLACKLIST is deprecated, please change to use RedactMode.BLOCKLIST",
+                         captured.records[0].getMessage())
 
     def test_invalid_input_values(self):
         with self.assertRaises(TypeError):
@@ -91,9 +108,9 @@ class RedactionConfigTests(TestCase):
 
     def test_redactResponseURL(self):
         rc = RedactionConfig(redactResponseURL=True)
-        event = {'RequestType' : 'Create',
-                 'RequestId' : 'abcded',
-                 'ResponseURL' : 'https://localhost',
+        event = {'RequestType': 'Create',
+                 'RequestId': 'abcded',
+                 'ResponseURL': 'https://localhost',
                  'StackId': 'arn:...',
                  'LogicalResourceId': 'Test',
                  'ResourceType': 'Custom::Test'}
@@ -102,13 +119,13 @@ class RedactionConfigTests(TestCase):
         self.assertIn('ResponseURL', event)
         self.assertNotIn('ResponseURL', revent)
 
-    def test_blacklist1(self):
-        rc = RedactionConfig(redactMode=RedactMode.BLACKLIST)
+    def test_blocklist1(self):
+        rc = RedactionConfig(redactMode=RedactMode.BLOCKLIST)
         rc.add_rule_set(self.ruleSetDefault)
         rc.add_rule_set(self.ruleSetCustom)
-        event = {'RequestType' : 'Create',
-                 'RequestId' : 'abcded',
-                 'ResponseURL' : 'https://localhost',
+        event = {'RequestType': 'Create',
+                 'RequestId': 'abcded',
+                 'ResponseURL': 'https://localhost',
                  'StackId': 'arn:...',
                  'LogicalResourceId': 'Test',
                  'ResourceType': 'Custom::Test',
@@ -120,26 +137,26 @@ class RedactionConfigTests(TestCase):
                                         'DoNotDelete': NOT_REDACTED_STRING}}
         revent = rc._redact(event)
 
-        self.assertEqual(event['ResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Test'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Example'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Custom'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Custom'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe1'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe1'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe2'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe2'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DoNotDelete'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DoNotDelete'], NOT_REDACTED_STRING)
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Test'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Example'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Custom'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['Custom'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DoNotDelete'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['DoNotDelete'])
 
-    def test_blacklist2(self):
-        rc = RedactionConfig(redactMode=RedactMode.BLACKLIST)
+    def test_blocklist2(self):
+        rc = RedactionConfig(redactMode=RedactMode.BLOCKLIST)
         rc.add_rule_set(self.ruleSetDefault)
         rc.add_rule_set(self.ruleSetCustom)
-        event = {'RequestType' : 'Create',
-                 'RequestId' : 'abcded',
-                 'ResponseURL' : 'https://localhost',
+        event = {'RequestType': 'Create',
+                 'RequestId': 'abcded',
+                 'ResponseURL': 'https://localhost',
                  'StackId': 'arn:...',
                  'LogicalResourceId': 'Test',
                  'ResourceType': 'Custom::Hello',
@@ -151,26 +168,26 @@ class RedactionConfigTests(TestCase):
                                         'DoNotDelete': NOT_REDACTED_STRING}}
         revent = rc._redact(event)
 
-        self.assertEqual(event['ResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Test'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Example'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Custom'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Custom'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe1'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe1'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe2'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe2'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DoNotDelete'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DoNotDelete'], NOT_REDACTED_STRING)
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Test'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Example'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Custom'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['Custom'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DoNotDelete'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['DoNotDelete'])
 
-    def test_whitelist1(self):
-        rc = RedactionConfig(redactMode=RedactMode.WHITELIST)
+    def test_allowlist1(self):
+        rc = RedactionConfig(redactMode=RedactMode.ALLOWLIST)
         rc.add_rule_set(self.ruleSetDefault)
         rc.add_rule_set(self.ruleSetCustom)
-        event = {'RequestType' : 'Create',
-                 'RequestId' : 'abcded',
-                 'ResponseURL' : 'https://localhost',
+        event = {'RequestType': 'Create',
+                 'RequestId': 'abcded',
+                 'ResponseURL': 'https://localhost',
                  'StackId': 'arn:...',
                  'LogicalResourceId': 'Test',
                  'ResourceType': 'Custom::Test',
@@ -182,26 +199,26 @@ class RedactionConfigTests(TestCase):
                                         'DoNotDelete': NOT_REDACTED_STRING}}
         revent = rc._redact(event)
 
-        self.assertEqual(event['ResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Custom'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Custom'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe1'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe1'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe2'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe2'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DoNotDelete'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DoNotDelete'], REDACTED_STRING)
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Custom'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['Custom'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DoNotDelete'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['DoNotDelete'])
 
-    def test_whitelist2(self):
-        rc = RedactionConfig(redactMode=RedactMode.WHITELIST)
+    def test_allowlist2(self):
+        rc = RedactionConfig(redactMode=RedactMode.ALLOWLIST)
         rc.add_rule_set(self.ruleSetDefault)
         rc.add_rule_set(self.ruleSetCustom)
-        event = {'RequestType' : 'Create',
-                 'RequestId' : 'abcded',
-                 'ResponseURL' : 'https://localhost',
+        event = {'RequestType': 'Create',
+                 'RequestId': 'abcded',
+                 'ResponseURL': 'https://localhost',
                  'StackId': 'arn:...',
                  'LogicalResourceId': 'Test',
                  'ResourceType': 'Custom::Hello',
@@ -213,26 +230,26 @@ class RedactionConfigTests(TestCase):
                                         'DoNotDelete': NOT_REDACTED_STRING}}
         revent = rc._redact(event)
 
-        self.assertEqual(event['ResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Custom'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Custom'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe1'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe1'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe2'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe2'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DoNotDelete'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DoNotDelete'], REDACTED_STRING)
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Custom'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['Custom'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DoNotDelete'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['DoNotDelete'])
 
     def test_oldproperties1(self):
-        rc = RedactionConfig(redactMode=RedactMode.BLACKLIST)
+        rc = RedactionConfig(redactMode=RedactMode.BLOCKLIST)
         rc.add_rule_set(self.ruleSetDefault)
         rc.add_rule_set(self.ruleSetCustom)
-        event = {'RequestType' : 'Update',
-                 'RequestId' : 'abcded',
-                 'ResponseURL' : 'https://localhost',
+        event = {'RequestType': 'Update',
+                 'RequestId': 'abcded',
+                 'ResponseURL': 'https://localhost',
                  'StackId': 'arn:...',
                  'LogicalResourceId': 'Test',
                  'PhysicalResourceId': 'Test',
@@ -251,39 +268,39 @@ class RedactionConfigTests(TestCase):
                                            'DoNotDelete': NOT_REDACTED_STRING}}
         revent = rc._redact(event)
 
-        self.assertEqual(event['ResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Test'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Example'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Custom'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Custom'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe1'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe1'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe2'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe2'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DoNotDelete'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DoNotDelete'], NOT_REDACTED_STRING)
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Test'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Example'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Custom'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['Custom'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DoNotDelete'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['DoNotDelete'])
 
-        self.assertEqual(event['OldResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['Test'], REDACTED_STRING)
-        self.assertEqual(event['OldResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['Example'], REDACTED_STRING)
-        self.assertEqual(event['OldResourceProperties']['Custom'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['Custom'], NOT_REDACTED_STRING)
-        self.assertEqual(event['OldResourceProperties']['DeleteMe1'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['DeleteMe1'], NOT_REDACTED_STRING)
-        self.assertEqual(event['OldResourceProperties']['DeleteMe2'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['DeleteMe2'], NOT_REDACTED_STRING)
-        self.assertEqual(event['OldResourceProperties']['DoNotDelete'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['DoNotDelete'], NOT_REDACTED_STRING)
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['Test'])
+        self.assertEqual(REDACTED_STRING, revent['OldResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['Example'])
+        self.assertEqual(REDACTED_STRING, revent['OldResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['Custom'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['OldResourceProperties']['Custom'])
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['DeleteMe1'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['OldResourceProperties']['DeleteMe1'])
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['DeleteMe2'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['OldResourceProperties']['DeleteMe2'])
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['DoNotDelete'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['OldResourceProperties']['DoNotDelete'])
 
     def test_oldproperties2(self):
-        rc = RedactionConfig(redactMode=RedactMode.WHITELIST)
+        rc = RedactionConfig(redactMode=RedactMode.ALLOWLIST)
         rc.add_rule_set(self.ruleSetDefault)
         rc.add_rule_set(self.ruleSetCustom)
-        event = {'RequestType' : 'Update',
-                 'RequestId' : 'abcded',
-                 'ResponseURL' : 'https://localhost',
+        event = {'RequestType': 'Update',
+                 'RequestId': 'abcded',
+                 'ResponseURL': 'https://localhost',
                  'StackId': 'arn:...',
                  'LogicalResourceId': 'Test',
                  'PhysicalResourceId': 'Test',
@@ -302,31 +319,31 @@ class RedactionConfigTests(TestCase):
                                            'DoNotDelete': NOT_REDACTED_STRING}}
         revent = rc._redact(event)
 
-        self.assertEqual(event['ResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Custom'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Custom'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe1'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe1'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe2'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe2'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DoNotDelete'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DoNotDelete'], REDACTED_STRING)
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Custom'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['Custom'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DoNotDelete'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['DoNotDelete'])
 
-        self.assertEqual(event['OldResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(event['OldResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(event['OldResourceProperties']['Custom'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['Custom'], REDACTED_STRING)
-        self.assertEqual(event['OldResourceProperties']['DeleteMe1'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['DeleteMe1'], REDACTED_STRING)
-        self.assertEqual(event['OldResourceProperties']['DeleteMe2'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['DeleteMe2'], REDACTED_STRING)
-        self.assertEqual(event['OldResourceProperties']['DoNotDelete'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['DoNotDelete'], REDACTED_STRING)
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['OldResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['OldResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['Custom'])
+        self.assertEqual(REDACTED_STRING, revent['OldResourceProperties']['Custom'])
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['DeleteMe1'])
+        self.assertEqual(REDACTED_STRING, revent['OldResourceProperties']['DeleteMe1'])
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['DeleteMe2'])
+        self.assertEqual(REDACTED_STRING, revent['OldResourceProperties']['DeleteMe2'])
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['DoNotDelete'])
+        self.assertEqual(REDACTED_STRING, revent['OldResourceProperties']['DoNotDelete'])
 
 
 class StandaloneRedactionConfigTests(TestCase):
@@ -342,13 +359,29 @@ class StandaloneRedactionConfigTests(TestCase):
 
     def test_defaults(self):
         rc = StandaloneRedactionConfig(self.ruleSetDefault)
-        self.assertEqual(rc.redactMode, RedactMode.BLACKLIST)
+        self.assertEqual(RedactMode.BLOCKLIST, rc.redactMode)
         self.assertFalse(rc.redactResponseURL)
 
     def test_input_values(self):
-        rc = StandaloneRedactionConfig(self.ruleSetDefault, redactMode=RedactMode.WHITELIST, redactResponseURL=True)
-        self.assertEqual(rc.redactMode, RedactMode.WHITELIST)
+        rc = StandaloneRedactionConfig(self.ruleSetDefault, redactMode=RedactMode.ALLOWLIST, redactResponseURL=True)
+        self.assertEqual(RedactMode.ALLOWLIST, rc.redactMode)
         self.assertTrue(rc.redactResponseURL)
+
+    def test_whitelist_deprecated(self):
+        with self.assertLogs(level=logging.WARNING) as captured:
+            rc = StandaloneRedactionConfig(self.ruleSetDefault, redactMode=RedactMode.WHITELIST)
+
+        self.assertEqual(1, len(captured.records))
+        self.assertEqual("The usage of RedactMode.WHITELIST is deprecated, please change to use RedactMode.ALLOWLIST",
+                         captured.records[0].getMessage())
+
+    def test_blacklist_deprecated(self):
+        with self.assertLogs(level=logging.WARNING) as captured:
+            rc = StandaloneRedactionConfig(self.ruleSetDefault, redactMode=RedactMode.BLACKLIST)
+
+        self.assertEqual(1, len(captured.records), 1)
+        self.assertEqual("The usage of RedactMode.BLACKLIST is deprecated, please change to use RedactMode.BLOCKLIST",
+                         captured.records[0].getMessage())
 
     def test_invalid_input_values(self):
         with self.assertRaises(TypeError):
@@ -370,9 +403,9 @@ class StandaloneRedactionConfigTests(TestCase):
 
     def test_redactResponseURL(self):
         rc = StandaloneRedactionConfig(self.ruleSetDefault, redactResponseURL=True)
-        event = {'RequestType' : 'Create',
-                 'RequestId' : 'abcded',
-                 'ResponseURL' : 'https://localhost',
+        event = {'RequestType': 'Create',
+                 'RequestId': 'abcded',
+                 'ResponseURL': 'https://localhost',
                  'StackId': 'arn:...',
                  'LogicalResourceId': 'Test',
                  'ResourceType': 'Custom::Test'}
@@ -381,11 +414,11 @@ class StandaloneRedactionConfigTests(TestCase):
         self.assertIn('ResponseURL', event)
         self.assertNotIn('ResponseURL', revent)
 
-    def test_blacklist(self):
-        rc = StandaloneRedactionConfig(self.ruleSetDefault, redactMode=RedactMode.BLACKLIST)
-        event = {'RequestType' : 'Create',
-                 'RequestId' : 'abcded',
-                 'ResponseURL' : 'https://localhost',
+    def test_blocklist(self):
+        rc = StandaloneRedactionConfig(self.ruleSetDefault, redactMode=RedactMode.BLOCKLIST)
+        event = {'RequestType': 'Create',
+                 'RequestId': 'abcded',
+                 'ResponseURL': 'https://localhost',
                  'StackId': 'arn:...',
                  'LogicalResourceId': 'Test',
                  'ResourceType': 'Custom::Test',
@@ -397,24 +430,24 @@ class StandaloneRedactionConfigTests(TestCase):
                                         'DoNotDelete': NOT_REDACTED_STRING}}
         revent = rc._redact(event)
 
-        self.assertEqual(event['ResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Test'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Example'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Custom'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Custom'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe1'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe1'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe2'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe2'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DoNotDelete'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DoNotDelete'], NOT_REDACTED_STRING)
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Test'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Example'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Custom'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['Custom'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DoNotDelete'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['DoNotDelete'])
 
-    def test_whitelist(self):
-        rc = StandaloneRedactionConfig(self.ruleSetDefault, redactMode=RedactMode.WHITELIST)
-        event = {'RequestType' : 'Create',
-                 'RequestId' : 'abcded',
-                 'ResponseURL' : 'https://localhost',
+    def test_allowlist(self):
+        rc = StandaloneRedactionConfig(self.ruleSetDefault, redactMode=RedactMode.ALLOWLIST)
+        event = {'RequestType': 'Create',
+                 'RequestId': 'abcded',
+                 'ResponseURL': 'https://localhost',
                  'StackId': 'arn:...',
                  'LogicalResourceId': 'Test',
                  'ResourceType': 'Custom::Hello',
@@ -426,27 +459,27 @@ class StandaloneRedactionConfigTests(TestCase):
                                         'DoNotDelete': NOT_REDACTED_STRING}}
         revent = rc._redact(event)
 
-        self.assertEqual(event['ResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Custom'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Custom'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe1'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe1'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe2'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe2'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DoNotDelete'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DoNotDelete'], REDACTED_STRING)
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Custom'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['Custom'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DoNotDelete'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['DoNotDelete'])
 
     def test_oldproperties(self):
-        rc = StandaloneRedactionConfig(self.ruleSetDefault, redactMode=RedactMode.WHITELIST)
-        event = {'RequestType' : 'Update',
-                 'RequestId' : 'abcded',
-                 'ResponseURL' : 'https://localhost',
+        rc = StandaloneRedactionConfig(self.ruleSetDefault, redactMode=RedactMode.ALLOWLIST)
+        event = {'RequestType': 'Update',
+                 'RequestId': 'abcded',
+                 'ResponseURL': 'https://localhost',
                  'StackId': 'arn:...',
                  'LogicalResourceId': 'Test',
-                 'PhysicalResourceId' : 'Test',
+                 'PhysicalResourceId': 'Test',
                  'ResourceType': 'Custom::Hello',
                  'ResourceProperties': {'Test': NOT_REDACTED_STRING,
                                         'Example': NOT_REDACTED_STRING,
@@ -462,31 +495,31 @@ class StandaloneRedactionConfigTests(TestCase):
                                            'DoNotDelete': NOT_REDACTED_STRING}}
         revent = rc._redact(event)
 
-        self.assertEqual(event['ResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['Custom'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['Custom'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe1'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe1'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DeleteMe2'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DeleteMe2'], REDACTED_STRING)
-        self.assertEqual(event['ResourceProperties']['DoNotDelete'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['ResourceProperties']['DoNotDelete'], REDACTED_STRING)
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['ResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['Custom'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['Custom'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['DeleteMe1'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['DeleteMe2'])
+        self.assertEqual(NOT_REDACTED_STRING, event['ResourceProperties']['DoNotDelete'])
+        self.assertEqual(REDACTED_STRING, revent['ResourceProperties']['DoNotDelete'])
 
-        self.assertEqual(event['OldResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['Test'], NOT_REDACTED_STRING)
-        self.assertEqual(event['OldResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['Example'], NOT_REDACTED_STRING)
-        self.assertEqual(event['OldResourceProperties']['Custom'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['Custom'], REDACTED_STRING)
-        self.assertEqual(event['OldResourceProperties']['DeleteMe1'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['DeleteMe1'], REDACTED_STRING)
-        self.assertEqual(event['OldResourceProperties']['DeleteMe2'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['DeleteMe2'], REDACTED_STRING)
-        self.assertEqual(event['OldResourceProperties']['DoNotDelete'], NOT_REDACTED_STRING)
-        self.assertEqual(revent['OldResourceProperties']['DoNotDelete'], REDACTED_STRING)
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['OldResourceProperties']['Test'])
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, revent['OldResourceProperties']['Example'])
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['Custom'])
+        self.assertEqual(REDACTED_STRING, revent['OldResourceProperties']['Custom'])
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['DeleteMe1'])
+        self.assertEqual(REDACTED_STRING, revent['OldResourceProperties']['DeleteMe1'])
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['DeleteMe2'])
+        self.assertEqual(REDACTED_STRING, revent['OldResourceProperties']['DeleteMe2'])
+        self.assertEqual(NOT_REDACTED_STRING, event['OldResourceProperties']['DoNotDelete'])
+        self.assertEqual(REDACTED_STRING, revent['OldResourceProperties']['DoNotDelete'])
 
 
 if __name__ == '__main__':

@@ -43,7 +43,6 @@ try:
 except ImportError:
     from botocore.vendored import requests
     logger.warning("botocore.vendored version of requests is deprecated. Please include requests in your code bundle.")
-import urllib3.exceptions
 
 
 # Time in milliseconds to set the alarm for (in milliseconds)
@@ -156,7 +155,7 @@ def decorator(enforceUseOfClass: bool = False, hideResourceDeleteFailure: bool =
                                  'Lambda API from within the function. As we may not have time to execute the ' +
                                  'function, returning failure.')
                     return ResponseObject(reason='Unable to call Lambda to do chained invoke, returning failure.',
-                                          responseStatus=Status.FAILED).send(event,context)
+                                          responseStatus=Status.FAILED).send(event, context)
                 except bexceptions.ReadTimeoutError:
                     # This should be a critical failure
                     logger.error('Waited the read timeout and function did not return, returning an error')
