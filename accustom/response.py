@@ -103,7 +103,7 @@ def collapse_data(response_data: dict):
         if isinstance(response_data[item], dict):
             response_data[item] = collapse_data(response_data[item])
             for c_item in response_data[item]:
-                new_key = "%s.%s" % (item, c_item)
+                new_key = f"{item}.{c_item}"
                 if new_key not in response_data:
                     # This if statement prevents overrides of existing keys
                     response_data[new_key] = response_data[item][c_item]
@@ -163,23 +163,22 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
             )
 
     if responseStatus != Status.FAILED and responseStatus != Status.SUCCESS:
-        raise InvalidResponseStatusException("%s is not a valid status" % responseStatus)
+        raise InvalidResponseStatusException(f"{responseStatus} is not a valid status")
 
     if responseData is not None and not isinstance(responseData, dict):
         raise DataIsNotDictException("Data provided was not a dictionary")
 
     if responseStatus == Status.FAILED:
         if responseReason is not None and responseData is not None and 'ExceptionThrown' in responseData:
-            responseReason = "There was an exception thrown in execution of '%s'" % responseData['ExceptionThrown']
+            responseReason = f"There was an exception thrown in execution of '{responseData['ExceptionThrown']}'"
         elif responseReason is None:
             responseReason = 'Unknown failure occurred'
 
         if context is not None:
-            responseReason = "%s -- See the details in CloudWatch Log Stream: %s" % (responseReason,
-                                                                                     context.log_stream_name)
+            responseReason = f"{responseReason} -- See the details in CloudWatch Log Stream: {context.log_stream_name}"
 
     elif context is not None and responseReason is None:
-        responseReason = "See the details in CloudWatch Log Stream: %s" % context.log_stream_name
+        responseReason = f"See the details in CloudWatch Log Stream: {context.log_stream_name}"
 
     responseUrl = event['ResponseURL']
 
@@ -196,16 +195,15 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
 
     json_responseBody = json.dumps(responseBody)
     json_responseSize = sys.getsizeof(json_responseBody)
-    logger.debug("Determined size of message to %dn bytes" % json_responseSize)
+    logger.debug(f"Determined size of message to {json_responseSize:d}n bytes")
 
     if json_responseSize >= CUSTOM_RESOURCE_SIZE_LIMIT:
         raise ResponseTooLongException(
-            "Response ended up %dn bytes long which exceeds %dn."
-            "bytes" % (json_responseSize, CUSTOM_RESOURCE_SIZE_LIMIT)
+            f"Response ended up {json_responseSize:d}n bytes long which exceeds {CUSTOM_RESOURCE_SIZE_LIMIT:d}n bytes"
             )
 
     logger.info("Sending response to pre-signed URL.")
-    logger.debug("URL: %s" % responseUrl)
+    logger.debug(f"URL: {responseUrl}")
     if not squashPrintResponse: logger.debug("Response body:\n" + json_responseBody)
 
     headers = {
@@ -222,22 +220,26 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
 
     try:
         response = requests.put(responseUrl, data=json_responseBody, headers=headers)
+        if 'x-amz-id-2' in response.headers and 'x-amz-request-id' in response.headers:
+            logger.debug("Got headers for PUT request to pre-signed URL. Printing to debug log.")
+            logger.debug(f"x-amz-request-id =\n{response.headers['x-amz-request-id']}")
+            logger.debug(f"x-amz-id-2 =\n{response.headers['x-amz-id-2']}")
         if response.status_code != 200:
             # Exceptions will only be thrown on timeout or other errors, in order to catch an invalid
             # status code like 403 we will need to explicitly check the status code. In normal operation
             # we should get a "200 OK" response to our PUT.
-            message = "Unable to send response to URL, status code received: %d %s" % (response.status_code,
-                                                                                       response.reason)
+            message = f"Unable to send response to URL, status code received: {response.status_code:d} " \
+                      f"{response.reason}"
             logger.error(message)
             raise FailedToSendResponseException(message)
-        logger.debug("Response status code: %d %s" % (response.status_code, response.reason))
+        logger.debug(f"Response status code: {response.status_code:d} {response.reason}")
 
     except FailedToSendResponseException as e:
         # Want to explicitly catch this exception we just raised in order to raise it unmodified
         raise e
 
     except Exception as e:
-        logger.error('Unable to send response to URL, reason given: %s' % str(e))
+        logger.error(f'Unable to send response to URL, reason given: {str(e)}')
         raise FailedToSendResponseException(str(e))
 
     return responseBody
@@ -315,7 +317,7 @@ class ResponseObject(object):
             )
 
     def __str__(self):
-        return 'Response(Status=%s)' % self.responseStatus
+        return f'Response(Status={self.responseStatus})'
 
     def __repr__(self):
         return str(self)

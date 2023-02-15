@@ -121,7 +121,7 @@ class RedactionConfig(object):
         if not isinstance(ruleSet, RedactionRuleSet):
             raise TypeError('Please use RedactionRuleSet class')
         if ruleSet.resourceRegex in self._redactProperties:
-            raise ConflictingValue('There is already a record set for resource of regex: %s' % ruleSet.resourceRegex)
+            raise ConflictingValue(f'There is already a record set for resource of regex: {ruleSet.resourceRegex}')
 
         # noinspection PyProtectedMember
         self._redactProperties[ruleSet.resourceRegex] = ruleSet._properties
@@ -172,7 +172,7 @@ class RedactionConfig(object):
         return ec
 
     def __str__(self):
-        return 'RedactionConfig(%s)' % self.redactMode
+        return f'RedactionConfig({self.redactMode})'
 
     def __repr__(self):
         return str(self)

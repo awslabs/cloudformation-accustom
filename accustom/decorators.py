@@ -116,8 +116,8 @@ def decorator(enforceUseOfClass: bool = False, hideResourceDeleteFailure: bool =
             # Timeout Function Handler
             if 'LambdaParentRequestId' in event:
                 logger.info(
-                    'This request has been invoked as a child, for parent logs please see request ID: %s' %
-                    event['LambdaParentRequestId']
+                    f'This request has been invoked as a child, for parent logs please see request ID: '
+                    f'{event["LambdaParentRequestId"]}'
                     )
             elif context is None and timeoutFunction:
                 logger.warning(
@@ -158,15 +158,14 @@ def decorator(enforceUseOfClass: bool = False, hideResourceDeleteFailure: bool =
 
                 except boto_exceptions.ClientError as e:
                     logger.warning(
-                        'Caught exception %s while trying to invoke function. Running handler locally.'
-                        % str(e)
+                        f'Caught exception {str(e)} while trying to invoke function. Running handler locally.'
                         )
                     logger.warning(
                         'You cannot use the timeoutFunction option without the ability for the function to' +
                         ' invoke itself. To suppress this warning, set timeoutFunction to False'
                         )
                 except boto_exceptions.ConnectionError as e:
-                    logger.error('Got error %s while trying to invoke function. Running handler locally' % str(e))
+                    logger.error(f'Got error {str(e)} while trying to invoke function. Running handler locally')
                     logger.error(
                         'You cannot use the timeoutFunction option without the ability to connect to the ' +
                         'Lambda API from within the function. As we may not have time to execute the ' +
@@ -184,15 +183,15 @@ def decorator(enforceUseOfClass: bool = False, hideResourceDeleteFailure: bool =
                         responseStatus=Status.FAILED
                         ).send(event, context)
                 except Exception as e:
-                    message = 'Got an %s I did not understand while trying to invoke child function: %s' % (e.__class__,
-                                                                                                            str(e))
+                    message = f'Got an {e.__class__} I did not understand while trying to invoke child function: ' \
+                              f'{str(e)}'
                     logger.error(message)
                     return ResponseObject(reason=message, responseStatus=Status.FAILED).send(event, context)
 
             # Debug Logging Handler
             if logger.getEffectiveLevel() <= logging.DEBUG:
                 if context is not None:
-                    logger.debug('Running request with Lambda RequestId: %s' % context.aws_request_id)
+                    logger.debug(f'Running request with Lambda RequestId: {context.aws_request_id}')
                 if redactConfig is not None and isinstance(redactConfig, (StandaloneRedactionConfig, RedactionConfig)):
                     # noinspection PyProtectedMember
                     logger.debug('Request Body:\n' + json.dumps(redactConfig._redact(event)))
@@ -203,7 +202,7 @@ def decorator(enforceUseOfClass: bool = False, hideResourceDeleteFailure: bool =
                     logger.debug('Request Body:\n' + json.dumps(event))
 
             try:
-                logger.info('Running CloudFormation request %s for stack: %s' % (event['RequestId'], event['StackId']))
+                logger.info(f'Running CloudFormation request {event["RequestId"]} for stack: {event["StackId"]}')
                 # Run the function
                 result = func(event, context, *args, **kwargs)
 
@@ -211,7 +210,7 @@ def decorator(enforceUseOfClass: bool = False, hideResourceDeleteFailure: bool =
                 # If there was an exception thrown by the function, send a failure response
                 result = ResponseObject(
                     physicalResourceId=str(uuid4()) if context is None else None,
-                    reason='Function %s failed due to exception "%s"' % (func.__name__, str(e)),
+                    reason=f'Function {func.__name__} failed due to exception "{str(e)}"',
                     responseStatus=Status.FAILED
                     )
                 logger.error(result.reason)
@@ -221,21 +220,21 @@ def decorator(enforceUseOfClass: bool = False, hideResourceDeleteFailure: bool =
                 # failure if it is an invalid response type, or if the enforceUseOfClass is explicitly or implicitly set
                 if context is None:
                     result = ResponseObject(
-                        reason='Response Object of type %s was not a ResponseObject and there is no Lambda Context'
-                               % result.__class__,
+                        reason=f'Response Object of type {result.__class__} was not a ResponseObject and there is no '
+                               f'Lambda Context',
                         responseStatus=Status.FAILED
                         )
                     logger.error(result.reason)
                 elif enforceUseOfClass:
                     result = ResponseObject(
-                        reason='Response Object of type %s was not a ResponseObject instance and ' +
-                               'enforceUseOfClass set to true' % result.__class__,
+                        reason=f'Response Object of type {result.__class__} was not a ResponseObject instance and '
+                               f'enforceUseOfClass set to true',
                         responseStatus=Status.FAILED
                         )
                     logger.error(result.reason)
                 elif result is False:
                     result = ResponseObject(
-                        reason='Function %s returned False.' % func.__name__,
+                        reason=f'Function {func.__name__} returned False.',
                         responseStatus=Status.FAILED
                         )
                     logger.debug(result.reason)
@@ -247,8 +246,7 @@ def decorator(enforceUseOfClass: bool = False, hideResourceDeleteFailure: bool =
                     result = ResponseObject()
                 else:
                     result = ResponseObject(
-                        reason='Return value from Function %s is of unsupported type %s' % (func.__name__,
-                                                                                            result.__class__),
+                        reason=f'Return value from Function {func.__name__} is of unsupported type {result.__class__}',
                         responseStatus=Status.FAILED
                         )
                     logger.error(result.reason)
@@ -262,10 +260,9 @@ def decorator(enforceUseOfClass: bool = False, hideResourceDeleteFailure: bool =
                         logger.debug('Data:\n' + json.dumps(result.data))
                     else:
                         logger.debug('Data: [REDACTED]')
-                if result.reason is not None: logger.debug('Reason: %s' % result.reason)
+                if result.reason is not None: logger.debug(f'Reason: {result.reason}')
                 if result.physicalResourceId is not None: logger.debug(
-                    'PhysicalResourceId: %s'
-                    % result.physicalResourceId
+                    f'PhysicalResourceId: {result.physicalResourceId}'
                     )
                 result = ResponseObject(
                     reason='There may be resources created by this Custom Resource that have not been cleaned' +
@@ -286,7 +283,7 @@ def decorator(enforceUseOfClass: bool = False, hideResourceDeleteFailure: bool =
                     )
                 return_value = result.send(event, context)
             except InvalidResponseStatusException:
-                message = 'Status provided "%s" is not a valid status.' % result.responseStatus
+                message = f'Status provided "{result.responseStatus}" is not a valid status.'
                 logger.error(message)
                 result = ResponseObject(
                     reason=message,
@@ -295,7 +292,7 @@ def decorator(enforceUseOfClass: bool = False, hideResourceDeleteFailure: bool =
                     )
                 return_value = result.send(event, context)
             except DataIsNotDictException as e:
-                message = 'Malformed Data Block in Response, Exception; %s' % str(e)
+                message = f'Malformed Data Block in Response, Exception; {str(e)}'
                 logger.error(message)
                 result = ResponseObject(
                     reason=message,
@@ -389,23 +386,23 @@ def rdecorator(decoratorHandleDelete: bool = False,
                           'https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/crpg-ref-requests.html'
                 logger.error(message)
                 raise NotValidRequestObjectException(message)
-            logger.info('Supported resource %s' % event['ResourceType'])
+            logger.info(f'Supported resource {event["ResourceType"]}')
 
             # Set the Physical Resource ID to a randomly generated UUID if it is not present
             if genUUID and 'PhysicalResourceId' not in event:
                 event['PhysicalResourceId'] = str(uuid4())
-                logger.info('Set PhysicalResourceId to %s' % event['PhysicalResourceId'])
+                logger.info(f'Set PhysicalResourceId to {event["PhysicalResourceId"]}')
 
             # Handle Delete when decoratorHandleDelete is set to True
             if decoratorHandleDelete and event['RequestType'] == RequestType.DELETE:
-                logger.info('Request type %s detected, returning success without calling function' % RequestType.DELETE)
+                logger.info(f'Request type {RequestType.DELETE} detected, returning success without calling function')
                 return ResponseObject(physicalResourceId=event['PhysicalResourceId'])
 
             # Validate important properties exist
             if expectedProperties is not None and isinstance(expectedProperties, (list, tuple)):
                 for index, item in enumerate(expectedProperties):
                     if item not in event['ResourceProperties']:
-                        err_msg = 'Property %s missing, sending failure signal' % item
+                        err_msg = f'Property {item} missing, sending failure signal'
                         logger.info(err_msg)
                         return ResponseObject(
                             reason=err_msg, responseStatus=Status.FAILED,
