@@ -8,16 +8,16 @@ This allows you to communicate with CloudFormation
 """
 
 # Exceptions
-from .Exceptions import DataIsNotDictException
-from .Exceptions import NoPhysicalResourceIdException
-from .Exceptions import InvalidResponseStatusException
-from .Exceptions import FailedToSendResponseException
-from .Exceptions import NotValidRequestObjectException
-from .Exceptions import ResponseTooLongException
+from accustom.Exceptions import DataIsNotDictException
+from accustom.Exceptions import NoPhysicalResourceIdException
+from accustom.Exceptions import InvalidResponseStatusException
+from accustom.Exceptions import FailedToSendResponseException
+from accustom.Exceptions import NotValidRequestObjectException
+from accustom.Exceptions import ResponseTooLongException
 
 # Constants
-from .constants import Status
-from .constants import RequestType
+from accustom.constants import Status
+from accustom.constants import RequestType
 
 # Required Libraries
 import json
@@ -49,14 +49,16 @@ def is_valid_event(event: dict) -> bool:
         bool: If the request object is a valid request object
 
     """
-    if not (all(v in event for v in (
-            'RequestType',
-            'ResponseURL',
-            'StackId',
-            'RequestId',
-            'ResourceType',
-            'LogicalResourceId'
-    ))):
+    if not (all(
+            v in event for v in (
+                    'RequestType',
+                    'ResponseURL',
+                    'StackId',
+                    'RequestId',
+                    'ResourceType',
+                    'LogicalResourceId'
+                    )
+            )):
         # Check we have all the required fields
         return False
 
@@ -81,7 +83,7 @@ def is_valid_event(event: dict) -> bool:
 def collapse_data(response_data: dict):
     """This function takes in a dictionary and collapses it into single object keys
 
-    For example it would translate something like this:
+    For example: it would translate something like this:
 
     { "Address" { "Street" : "Apple Street" }}
 
@@ -89,7 +91,7 @@ def collapse_data(response_data: dict):
 
     { "Address.Street" : "Apple Street" }
 
-    Where there is a explict instance of a dot-notated item, this will override any collapsed items
+    Where there is an explict instance of a dot-notated item, this will override any collapsed items
 
     Args:
         response_data (dict): The data object that needs to be collapsed
@@ -100,11 +102,11 @@ def collapse_data(response_data: dict):
     for item in list(response_data):
         if isinstance(response_data[item], dict):
             response_data[item] = collapse_data(response_data[item])
-            for citem in response_data[item]:
-                new_key = "%s.%s" % (item, citem)
+            for c_item in response_data[item]:
+                new_key = "%s.%s" % (item, c_item)
                 if new_key not in response_data:
                     # This if statement prevents overrides of existing keys
-                    response_data[new_key] = response_data[item][citem]
+                    response_data[new_key] = response_data[item][c_item]
             del response_data[item]
 
     return response_data
@@ -155,8 +157,10 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
         raise NotValidRequestObjectException(message)
 
     if physicalResourceId is None and context is None and 'PhysicalResourceId' not in event:
-        raise NoPhysicalResourceIdException("Both physicalResourceId and context are None, and there is no" +
-                                            "physicalResourceId in the event")
+        raise NoPhysicalResourceIdException(
+            "Both physicalResourceId and context are None, and there is no" +
+            "physicalResourceId in the event"
+            )
 
     if responseStatus != Status.FAILED and responseStatus != Status.SUCCESS:
         raise InvalidResponseStatusException("%s is not a valid status" % responseStatus)
@@ -195,17 +199,19 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
     logger.debug("Determined size of message to %dn bytes" % json_responseSize)
 
     if json_responseSize >= CUSTOM_RESOURCE_SIZE_LIMIT:
-        raise ResponseTooLongException("Response ended up %dn bytes long which exceeds %dn."
-                                       "bytes" % (json_responseSize, CUSTOM_RESOURCE_SIZE_LIMIT))
+        raise ResponseTooLongException(
+            "Response ended up %dn bytes long which exceeds %dn."
+            "bytes" % (json_responseSize, CUSTOM_RESOURCE_SIZE_LIMIT)
+            )
 
     logger.info("Sending response to pre-signed URL.")
     logger.debug("URL: %s" % responseUrl)
     if not squashPrintResponse: logger.debug("Response body:\n" + json_responseBody)
 
     headers = {
-        'content-type': '',
+        'content-type':   '',
         'content-length': str(json_responseSize)
-    }
+        }
 
     # Flush the buffers to attempt to prevent log truncations when resource is deleted
     # by stack in next action
@@ -303,8 +309,10 @@ class ResponseObject(object):
             NotValidRequestObjectException
             ResponseTooLongException
         """
-        return cfnresponse(event, self.responseStatus, self.reason, self.data, self.physicalResourceId, context,
-                           self.squashPrintResponse)
+        return cfnresponse(
+            event, self.responseStatus, self.reason, self.data, self.physicalResourceId, context,
+            self.squashPrintResponse
+            )
 
     def __str__(self):
         return 'Response(Status=%s)' % self.responseStatus

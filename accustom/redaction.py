@@ -6,11 +6,11 @@
 This allows you to define a redaction policy for accustom
 """
 
-from .response import is_valid_event
-from .constants import RedactMode
-from .Exceptions import ConflictingValue
-from .Exceptions import CannotApplyRuleToStandaloneRedactionConfig
-from .Exceptions import NotValidRequestObjectException
+from accustom.response import is_valid_event
+from accustom.constants import RedactMode
+from accustom.Exceptions import ConflictingValue
+from accustom.Exceptions import CannotApplyRuleToStandaloneRedactionConfig
+from accustom.Exceptions import NotValidRequestObjectException
 
 import logging
 import six
@@ -72,7 +72,7 @@ class RedactionRuleSet(object):
 
 
 class RedactionConfig(object):
-    """Class that allows you define a redaction policy for accustom"""
+    """Class that defines a redaction policy for accustom"""
 
     def __init__(self, redactMode: str = RedactMode.BLOCKLIST, redactResponseURL: bool = False):
         """Init function for the class
@@ -88,10 +88,12 @@ class RedactionConfig(object):
 
         """
         if redactMode == RedactMode.BLACKLIST:
-            logger.warning("The usage of RedactMode.BLACKLIST is deprecated, please change to use RedactMode.BLOCKLIST")
+            logger.warning("The usage of RedactMode.BLACKLIST is deprecated, "
+                           "please change to use RedactMode.BLOCKLIST")
             redactMode = RedactMode.BLOCKLIST
         if redactMode == RedactMode.WHITELIST:
-            logging.warning("The usage of RedactMode.WHITELIST is deprecated, please change to use RedactMode.ALLOWLIST")
+            logging.warning("The usage of RedactMode.WHITELIST is deprecated, "
+                            "please change to use RedactMode.ALLOWLIST")
             redactMode = RedactMode.ALLOWLIST
 
         if redactMode != RedactMode.BLOCKLIST and redactMode != RedactMode.ALLOWLIST:
@@ -121,10 +123,11 @@ class RedactionConfig(object):
         if ruleSet.resourceRegex in self._redactProperties:
             raise ConflictingValue('There is already a record set for resource of regex: %s' % ruleSet.resourceRegex)
 
+        # noinspection PyProtectedMember
         self._redactProperties[ruleSet.resourceRegex] = ruleSet._properties
 
     def _redact(self, event: dict):
-        """ Internal Function. Not to be consumed outside of accustom Library.
+        """ Internal Function. Not to be consumed outside accustom Library.
 
             This function will take in an event and return the event redacted as per the redaction config.
         """
@@ -145,18 +148,18 @@ class RedactionConfig(object):
                     r = re.compile(item)
                     if self.redactMode == RedactMode.BLOCKLIST:
                         if 'ResourceProperties' in ec:
-                            for mitem in filter(r.match, ec['ResourceProperties']):
-                                ec['ResourceProperties'][mitem] = REDACTED_STRING
+                            for m_item in filter(r.match, ec['ResourceProperties']):
+                                ec['ResourceProperties'][m_item] = REDACTED_STRING
                         if 'OldResourceProperties' in ec:
-                            for mitem in filter(r.match, ec['OldResourceProperties']):
-                                ec['OldResourceProperties'][mitem] = REDACTED_STRING
+                            for m_item in filter(r.match, ec['OldResourceProperties']):
+                                ec['OldResourceProperties'][m_item] = REDACTED_STRING
                     elif self.redactMode == RedactMode.ALLOWLIST:
                         if 'ResourceProperties' in ec:
-                            for mitem in filter(r.match, event['ResourceProperties']):
-                                ec['ResourceProperties'][mitem] = event['ResourceProperties'][mitem]
+                            for m_item in filter(r.match, event['ResourceProperties']):
+                                ec['ResourceProperties'][m_item] = event['ResourceProperties'][m_item]
                         if 'OldResourceProperties' in ec:
-                            for mitem in filter(r.match, event['OldResourceProperties']):
-                                ec['OldResourceProperties'][mitem] = event['OldResourceProperties'][mitem]
+                            for m_item in filter(r.match, event['OldResourceProperties']):
+                                ec['OldResourceProperties'][m_item] = event['OldResourceProperties'][m_item]
         if self.redactMode == RedactMode.ALLOWLIST:
             if 'ResourceProperties' in ec:
                 for key, value in event['ResourceProperties'].items():
@@ -176,6 +179,9 @@ class RedactionConfig(object):
 
 
 class StandaloneRedactionConfig(RedactionConfig):
+    """
+    Class that defines a redaction policy for a standalone function
+    """
     def __init__(self, ruleSet: RedactionRuleSet, redactMode: str = RedactMode.BLOCKLIST,
                  redactResponseURL: bool = False):
         """Init function for the class
