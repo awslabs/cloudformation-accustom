@@ -1,11 +1,14 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+"""
+Testing of the "constant" library
+"""
 from accustom import Status
 from accustom import RequestType
 from accustom import RedactMode
 
-from unittest import TestCase, main as umain
+from unittest import TestCase, main as ut_main
 
 
 class StatusTests(TestCase):
@@ -35,11 +38,11 @@ class RedactModeTests(TestCase):
         self.assertEqual('allow', RedactMode.ALLOWLIST)
 
     def test_blacklist(self):
-        self.assertEqual('black', RedactMode.BLACKLIST)
+        self.assertEqual('block', RedactMode.BLACKLIST)
 
     def test_whitelist(self):
-        self.assertEqual('white', RedactMode.WHITELIST)
+        self.assertEqual('allow', RedactMode.WHITELIST)
 
 
 if __name__ == '__main__':
-    umain()
+    ut_main()

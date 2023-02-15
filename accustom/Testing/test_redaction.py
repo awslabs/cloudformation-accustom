@@ -1,6 +1,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+"""
+Testing of "redaction" library
+"""
 from accustom import RedactionRuleSet
 from accustom import RedactionConfig
 from accustom import StandaloneRedactionConfig
@@ -8,7 +11,7 @@ from accustom import RedactMode
 from accustom.Exceptions import CannotApplyRuleToStandaloneRedactionConfig
 import logging
 
-from unittest import TestCase, main as umain
+from unittest import TestCase, main as ut_main
 
 REDACTED_STRING = '[REDACTED]'
 NOT_REDACTED_STRING = 'NotRedacted'
@@ -27,6 +30,7 @@ class RedactionRuleSetTests(TestCase):
     def test_invalid_init(self):
         # This test ignores the setUp Resources
         with self.assertRaises(TypeError):
+            # noinspection PyTypeChecker
             RedactionRuleSet(0)
 
     def test_default_regex(self):
@@ -38,6 +42,7 @@ class RedactionRuleSetTests(TestCase):
 
     def test_adding_invalid_regex(self):
         with self.assertRaises(TypeError):
+            # noinspection PyTypeChecker
             self.ruleSet.add_property_regex(0)
 
     def test_adding_property(self):
@@ -46,9 +51,11 @@ class RedactionRuleSetTests(TestCase):
 
     def test_adding_invalid_property(self):
         with self.assertRaises(TypeError):
+            # noinspection PyTypeChecker
             self.ruleSet.add_property(0)
 
 
+# noinspection DuplicatedCode
 class RedactionConfigTests(TestCase):
 
     def setUp(self):
@@ -90,8 +97,10 @@ class RedactionConfigTests(TestCase):
         with self.assertRaises(TypeError):
             RedactionConfig(redactMode='somestring')
         with self.assertRaises(TypeError):
+            # noinspection PyTypeChecker
             RedactionConfig(redactMode=0)
         with self.assertRaises(TypeError):
+            # noinspection PyTypeChecker
             RedactionConfig(redactResponseURL=0)
 
     def test_structure(self):
@@ -346,6 +355,7 @@ class RedactionConfigTests(TestCase):
         self.assertEqual(REDACTED_STRING, revent['OldResourceProperties']['DoNotDelete'])
 
 
+# noinspection DuplicatedCode
 class StandaloneRedactionConfigTests(TestCase):
 
     def setUp(self):
@@ -387,8 +397,10 @@ class StandaloneRedactionConfigTests(TestCase):
         with self.assertRaises(TypeError):
             StandaloneRedactionConfig(self.ruleSetDefault, redactMode='somestring')
         with self.assertRaises(TypeError):
+            # noinspection PyTypeChecker
             StandaloneRedactionConfig(self.ruleSetDefault, redactMode=0)
         with self.assertRaises(TypeError):
+            # noinspection PyTypeChecker
             StandaloneRedactionConfig(self.ruleSetDefault, redactResponseURL=0)
         with self.assertRaises(CannotApplyRuleToStandaloneRedactionConfig):
             rc = StandaloneRedactionConfig(self.ruleSetDefault)
@@ -523,4 +535,4 @@ class StandaloneRedactionConfigTests(TestCase):
 
 
 if __name__ == '__main__':
-    umain()
+    ut_main()

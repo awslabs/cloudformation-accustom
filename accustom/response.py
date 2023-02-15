@@ -8,15 +8,16 @@ This allows you to communicate with CloudFormation
 """
 
 # Exceptions
-from .Exceptions import DataIsNotDictException
-from .Exceptions import NoPhysicalResourceIdException
-from .Exceptions import InvalidResponseStatusException
-from .Exceptions import FailedToSendResponseException
-from .Exceptions import NotValidRequestObjectException
+from accustom.Exceptions import DataIsNotDictException
+from accustom.Exceptions import NoPhysicalResourceIdException
+from accustom.Exceptions import InvalidResponseStatusException
+from accustom.Exceptions import FailedToSendResponseException
+from accustom.Exceptions import NotValidRequestObjectException
+from accustom.Exceptions import ResponseTooLongException
 
 # Constants
-from .constants import Status
-from .constants import RequestType
+from accustom.constants import Status
+from accustom.constants import RequestType
 
 # Required Libraries
 import json
@@ -26,6 +27,7 @@ import six
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
+CUSTOM_RESOURCE_SIZE_LIMIT = 4096
 
 # Import Requests
 try:
@@ -47,14 +49,16 @@ def is_valid_event(event: dict) -> bool:
         bool: If the request object is a valid request object
 
     """
-    if not (all(v in event for v in (
-            'RequestType',
-            'ResponseURL',
-            'StackId',
-            'RequestId',
-            'ResourceType',
-            'LogicalResourceId'
-    ))):
+    if not (all(
+            v in event for v in (
+                    'RequestType',
+                    'ResponseURL',
+                    'StackId',
+                    'RequestId',
+                    'ResourceType',
+                    'LogicalResourceId'
+                    )
+            )):
         # Check we have all the required fields
         return False
 
@@ -74,6 +78,38 @@ def is_valid_event(event: dict) -> bool:
 
     # All checks passed
     return True
+
+
+def collapse_data(response_data: dict):
+    """This function takes in a dictionary and collapses it into single object keys
+
+    For example: it would translate something like this:
+
+    { "Address" { "Street" : "Apple Street" }}
+
+    Into this:
+
+    { "Address.Street" : "Apple Street" }
+
+    Where there is an explict instance of a dot-notated item, this will override any collapsed items
+
+    Args:
+        response_data (dict): The data object that needs to be collapsed
+    Returns:
+        dict: collapsed response data with higher level keys removed and replaced with dot-notation
+    """
+
+    for item in list(response_data):
+        if isinstance(response_data[item], dict):
+            response_data[item] = collapse_data(response_data[item])
+            for c_item in response_data[item]:
+                new_key = f"{item}.{c_item}"
+                if new_key not in response_data:
+                    # This if statement prevents overrides of existing keys
+                    response_data[new_key] = response_data[item][c_item]
+            del response_data[item]
+
+    return response_data
 
 
 def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, responseData: dict = None,
@@ -110,6 +146,7 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
         DataIsNotDictException
         FailedToSendResponseException
         NotValidRequestObjectException
+        ResponseTooLongException
 
     """
     if not is_valid_event(event):
@@ -120,27 +157,28 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
         raise NotValidRequestObjectException(message)
 
     if physicalResourceId is None and context is None and 'PhysicalResourceId' not in event:
-        raise NoPhysicalResourceIdException("Both physicalResourceId and context are None, and there is no" +
-                                            "physicalResourceId in the event")
+        raise NoPhysicalResourceIdException(
+            "Both physicalResourceId and context are None, and there is no" +
+            "physicalResourceId in the event"
+            )
 
     if responseStatus != Status.FAILED and responseStatus != Status.SUCCESS:
-        raise InvalidResponseStatusException("%s is not a valid status" % responseStatus)
+        raise InvalidResponseStatusException(f"{responseStatus} is not a valid status")
 
     if responseData is not None and not isinstance(responseData, dict):
         raise DataIsNotDictException("Data provided was not a dictionary")
 
     if responseStatus == Status.FAILED:
         if responseReason is not None and responseData is not None and 'ExceptionThrown' in responseData:
-            responseReason = "There was an exception thrown in execution of '%s'" % responseData['ExceptionThrown']
+            responseReason = f"There was an exception thrown in execution of '{responseData['ExceptionThrown']}'"
         elif responseReason is None:
             responseReason = 'Unknown failure occurred'
 
         if context is not None:
-            responseReason = "%s -- See the details in CloudWatch Log Stream: %s" % (responseReason,
-                                                                                     context.log_stream_name)
+            responseReason = f"{responseReason} -- See the details in CloudWatch Log Stream: {context.log_stream_name}"
 
     elif context is not None and responseReason is None:
-        responseReason = "See the details in CloudWatch Log Stream: %s" % context.log_stream_name
+        responseReason = f"See the details in CloudWatch Log Stream: {context.log_stream_name}"
 
     responseUrl = event['ResponseURL']
 
@@ -152,19 +190,26 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
     responseBody['StackId'] = event['StackId']
     responseBody['RequestId'] = event['RequestId']
     responseBody['LogicalResourceId'] = event['LogicalResourceId']
-    if responseData is not None: responseBody['Data'] = responseData
+    if responseData is not None: responseBody['Data'] = collapse_data(responseData)
     if squashPrintResponse: responseBody['NoEcho'] = 'true'
 
     json_responseBody = json.dumps(responseBody)
+    json_responseSize = sys.getsizeof(json_responseBody)
+    logger.debug(f"Determined size of message to {json_responseSize:d}n bytes")
+
+    if json_responseSize >= CUSTOM_RESOURCE_SIZE_LIMIT:
+        raise ResponseTooLongException(
+            f"Response ended up {json_responseSize:d}n bytes long which exceeds {CUSTOM_RESOURCE_SIZE_LIMIT:d}n bytes"
+            )
 
     logger.info("Sending response to pre-signed URL.")
-    logger.debug("URL: %s" % responseUrl)
+    logger.debug(f"URL: {responseUrl}")
     if not squashPrintResponse: logger.debug("Response body:\n" + json_responseBody)
 
     headers = {
-        'content-type': '',
-        'content-length': str(len(json_responseBody))
-    }
+        'content-type':   '',
+        'content-length': str(json_responseSize)
+        }
 
     # Flush the buffers to attempt to prevent log truncations when resource is deleted
     # by stack in next action
@@ -175,22 +220,26 @@ def cfnresponse(event: dict, responseStatus: str, responseReason: str = None, re
 
     try:
         response = requests.put(responseUrl, data=json_responseBody, headers=headers)
+        if 'x-amz-id-2' in response.headers and 'x-amz-request-id' in response.headers:
+            logger.debug("Got headers for PUT request to pre-signed URL. Printing to debug log.")
+            logger.debug(f"x-amz-request-id =\n{response.headers['x-amz-request-id']}")
+            logger.debug(f"x-amz-id-2 =\n{response.headers['x-amz-id-2']}")
         if response.status_code != 200:
             # Exceptions will only be thrown on timeout or other errors, in order to catch an invalid
             # status code like 403 we will need to explicitly check the status code. In normal operation
             # we should get a "200 OK" response to our PUT.
-            message = "Unable to send response to URL, status code received: %d %s" % (response.status_code,
-                                                                                       response.reason)
+            message = f"Unable to send response to URL, status code received: {response.status_code:d} " \
+                      f"{response.reason}"
             logger.error(message)
             raise FailedToSendResponseException(message)
-        logger.debug("Response status code: %d %s" % (response.status_code, response.reason))
+        logger.debug(f"Response status code: {response.status_code:d} {response.reason}")
 
     except FailedToSendResponseException as e:
         # Want to explicitly catch this exception we just raised in order to raise it unmodified
         raise e
 
     except Exception as e:
-        logger.error('Unable to send response to URL, reason given: %s' % str(e))
+        logger.error(f'Unable to send response to URL, reason given: {str(e)}')
         raise FailedToSendResponseException(str(e))
 
     return responseBody
@@ -260,12 +309,15 @@ class ResponseObject(object):
             DataIsNotDictException
             FailedToSendResponseException
             NotValidRequestObjectException
+            ResponseTooLongException
         """
-        return cfnresponse(event, self.responseStatus, self.reason, self.data, self.physicalResourceId, context,
-                           self.squashPrintResponse)
+        return cfnresponse(
+            event, self.responseStatus, self.reason, self.data, self.physicalResourceId, context,
+            self.squashPrintResponse
+            )
 
     def __str__(self):
-        return 'Response(Status=%s)' % self.responseStatus
+        return f'Response(Status={self.responseStatus})'
 
     def __repr__(self):
         return str(self)
