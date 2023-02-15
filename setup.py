@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name='accustom',
-    version='1.1.3',
+    version='1.2.0',
     description='Accustom is a library for responding to Custom Resources in AWS CloudFormation using the decorator '
                 'pattern.',
     long_description=read('README.md'),
