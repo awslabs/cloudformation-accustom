@@ -6,23 +6,25 @@
 This allows you to define a redaction policy for accustom
 """
 
-from accustom.response import is_valid_event
-from accustom.constants import RedactMode
-from accustom.Exceptions import ConflictingValue
-from accustom.Exceptions import CannotApplyRuleToStandaloneRedactionConfig
-from accustom.Exceptions import NotValidRequestObjectException
-
-import logging
-import six
-import re
 import copy
+import logging
+import re
+
+from accustom.constants import RedactMode
+from accustom.Exceptions import (
+    CannotApplyRuleToStandaloneRedactionConfig,
+    ConflictingValue,
+    NotValidRequestObjectException,
+)
+from accustom.response import is_valid_event
 
 logger = logging.getLogger(__name__)
 
-_RESOURCEREGEX_DEFAULT = '^.*$'
-REDACTED_STRING = '[REDACTED]'
+_RESOURCEREGEX_DEFAULT = "^.*$"
+REDACTED_STRING = "[REDACTED]"
 
 
+# noinspection PyPep8Naming
 class RedactionRuleSet(object):
     """Class that allows you to define a redaction rule set for accustom"""
 
@@ -36,8 +38,8 @@ class RedactionRuleSet(object):
             TypeError
 
         """
-        if not isinstance(resourceRegex, six.string_types):
-            raise TypeError('resourceRegex must be a string')
+        if not isinstance(resourceRegex, str):
+            raise TypeError("resourceRegex must be a string")
 
         self.resourceRegex = resourceRegex
         self._properties = []
@@ -52,8 +54,8 @@ class RedactionRuleSet(object):
             TypeError
 
         """
-        if not isinstance(propertiesRegex, six.string_types):
-            raise TypeError('propertiesRegex must be a string')
+        if not isinstance(propertiesRegex, str):
+            raise TypeError("propertiesRegex must be a string")
         self._properties.append(propertiesRegex)
 
     def add_property(self, propertyName: str):
@@ -66,11 +68,12 @@ class RedactionRuleSet(object):
             TypeError
 
         """
-        if not isinstance(propertyName, six.string_types):
-            raise TypeError('propertyName must be a string')
-        self._properties.append('^' + propertyName + '$')
+        if not isinstance(propertyName, str):
+            raise TypeError("propertyName must be a string")
+        self._properties.append("^" + propertyName + "$")
 
 
+# noinspection PyPep8Naming
 class RedactionConfig(object):
     """Class that defines a redaction policy for accustom"""
 
@@ -88,26 +91,28 @@ class RedactionConfig(object):
 
         """
         if redactMode == RedactMode.BLACKLIST:
-            logger.warning("The usage of RedactMode.BLACKLIST is deprecated, "
-                           "please change to use RedactMode.BLOCKLIST")
+            logger.warning(
+                "The usage of RedactMode.BLACKLIST is deprecated, " "please change to use RedactMode.BLOCKLIST"
+            )
             redactMode = RedactMode.BLOCKLIST
         if redactMode == RedactMode.WHITELIST:
-            logging.warning("The usage of RedactMode.WHITELIST is deprecated, "
-                            "please change to use RedactMode.ALLOWLIST")
+            logging.warning(
+                "The usage of RedactMode.WHITELIST is deprecated, " "please change to use RedactMode.ALLOWLIST"
+            )
             redactMode = RedactMode.ALLOWLIST
 
         if redactMode != RedactMode.BLOCKLIST and redactMode != RedactMode.ALLOWLIST:
-            raise TypeError('Invalid Redaction Type')
+            raise TypeError("Invalid Redaction Type")
 
         if not isinstance(redactResponseURL, bool):
-            raise TypeError('redactResponseURL must be of boolean type')
+            raise TypeError("redactResponseURL must be of boolean type")
 
         self.redactMode = redactMode
         self.redactResponseURL = redactResponseURL
         self._redactProperties = {}
 
     def add_rule_set(self, ruleSet: RedactionRuleSet):
-        """ This function will add a RedactionRuleSet object to the RedactionConfig.
+        """This function will add a RedactionRuleSet object to the RedactionConfig.
 
         Args:
             ruleSet (RedactionRuleSet): The rule to be added to the RedactionConfig
@@ -119,71 +124,81 @@ class RedactionConfig(object):
         """
 
         if not isinstance(ruleSet, RedactionRuleSet):
-            raise TypeError('Please use RedactionRuleSet class')
+            raise TypeError("Please use RedactionRuleSet class")
         if ruleSet.resourceRegex in self._redactProperties:
-            raise ConflictingValue(f'There is already a record set for resource of regex: {ruleSet.resourceRegex}')
+            raise ConflictingValue(f"There is already a record set for resource of regex: {ruleSet.resourceRegex}")
 
         # noinspection PyProtectedMember
         self._redactProperties[ruleSet.resourceRegex] = ruleSet._properties
 
     def _redact(self, event: dict):
-        """ Internal Function. Not to be consumed outside accustom Library.
+        """Internal Function. Not to be consumed outside accustom Library.
 
-            This function will take in an event and return the event redacted as per the redaction config.
+        This function will take in an event and return the event redacted as per the redaction config.
         """
         if not is_valid_event(event):
             # If it is not a valid event we need to raise an exception
-            message = 'The event object passed is not a valid Request Object as per ' + \
-                      'https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/crpg-ref-requests.html'
+            message = (
+                "The event object passed is not a valid Request Object as per "
+                + "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/crpg-ref-requests.html"
+            )
             logger.error(message)
             raise NotValidRequestObjectException(message)
         ec = copy.deepcopy(event)
         if self.redactMode == RedactMode.ALLOWLIST:
-            if 'ResourceProperties' in ec: ec['ResourceProperties'] = {}
-            if 'OldResourceProperties' in ec: ec['OldResourceProperties'] = {}
+            if "ResourceProperties" in ec:
+                ec["ResourceProperties"] = {}
+            if "OldResourceProperties" in ec:
+                ec["OldResourceProperties"] = {}
         for resourceRegex, propertyRegex in self._redactProperties.items():
-            if re.search(resourceRegex, event['ResourceType']) is not None:
+            if re.search(resourceRegex, event["ResourceType"]) is not None:
                 # Go through the Properties looking to see if they're in the ResourceProperties or OldResourceProperties
                 for index, item in enumerate(propertyRegex):
                     r = re.compile(item)
                     if self.redactMode == RedactMode.BLOCKLIST:
-                        if 'ResourceProperties' in ec:
-                            for m_item in filter(r.match, ec['ResourceProperties']):
-                                ec['ResourceProperties'][m_item] = REDACTED_STRING
-                        if 'OldResourceProperties' in ec:
-                            for m_item in filter(r.match, ec['OldResourceProperties']):
-                                ec['OldResourceProperties'][m_item] = REDACTED_STRING
+                        if "ResourceProperties" in ec:
+                            for m_item in filter(r.match, ec["ResourceProperties"]):
+                                ec["ResourceProperties"][m_item] = REDACTED_STRING
+                        if "OldResourceProperties" in ec:
+                            for m_item in filter(r.match, ec["OldResourceProperties"]):
+                                ec["OldResourceProperties"][m_item] = REDACTED_STRING
                     elif self.redactMode == RedactMode.ALLOWLIST:
-                        if 'ResourceProperties' in ec:
-                            for m_item in filter(r.match, event['ResourceProperties']):
-                                ec['ResourceProperties'][m_item] = event['ResourceProperties'][m_item]
-                        if 'OldResourceProperties' in ec:
-                            for m_item in filter(r.match, event['OldResourceProperties']):
-                                ec['OldResourceProperties'][m_item] = event['OldResourceProperties'][m_item]
+                        if "ResourceProperties" in ec:
+                            for m_item in filter(r.match, event["ResourceProperties"]):
+                                ec["ResourceProperties"][m_item] = event["ResourceProperties"][m_item]
+                        if "OldResourceProperties" in ec:
+                            for m_item in filter(r.match, event["OldResourceProperties"]):
+                                ec["OldResourceProperties"][m_item] = event["OldResourceProperties"][m_item]
         if self.redactMode == RedactMode.ALLOWLIST:
-            if 'ResourceProperties' in ec:
-                for key, value in event['ResourceProperties'].items():
-                    if key not in ec['ResourceProperties']: ec['ResourceProperties'][key] = REDACTED_STRING
-            if 'OldResourceProperties' in ec:
-                for key, value in event['OldResourceProperties'].items():
-                    if key not in ec['OldResourceProperties']: ec['OldResourceProperties'][key] = REDACTED_STRING
+            if "ResourceProperties" in ec:
+                for key, value in event["ResourceProperties"].items():
+                    if key not in ec["ResourceProperties"]:
+                        ec["ResourceProperties"][key] = REDACTED_STRING
+            if "OldResourceProperties" in ec:
+                for key, value in event["OldResourceProperties"].items():
+                    if key not in ec["OldResourceProperties"]:
+                        ec["OldResourceProperties"][key] = REDACTED_STRING
 
-        if self.redactResponseURL: del ec['ResponseURL']
+        if self.redactResponseURL:
+            del ec["ResponseURL"]
         return ec
 
     def __str__(self):
-        return f'RedactionConfig({self.redactMode})'
+        return f"RedactionConfig({self.redactMode})"
 
     def __repr__(self):
         return str(self)
 
 
+# noinspection PyPep8Naming
 class StandaloneRedactionConfig(RedactionConfig):
     """
     Class that defines a redaction policy for a standalone function
     """
-    def __init__(self, ruleSet: RedactionRuleSet, redactMode: str = RedactMode.BLOCKLIST,
-                 redactResponseURL: bool = False):
+
+    def __init__(
+        self, ruleSet: RedactionRuleSet, redactMode: str = RedactMode.BLOCKLIST, redactResponseURL: bool = False
+    ):
         """Init function for the class
 
         Args:
@@ -200,13 +215,13 @@ class StandaloneRedactionConfig(RedactionConfig):
         RedactionConfig.__init__(self, redactMode=redactMode, redactResponseURL=redactResponseURL)
         ruleSet.resourceRegex = _RESOURCEREGEX_DEFAULT
         # override resource regex to be default
-        assert (ruleSet is not None)
+        assert ruleSet is not None
         RedactionConfig.add_rule_set(self, ruleSet)
 
     def add_rule_set(self, ruleSet: RedactionRuleSet):
-        """ Overrides the add_rule_set operation with one that will immediately throw an exception
+        """Overrides the add_rule_set operation with one that will immediately throw an exception
 
-            Raises
-                CannotApplyRuleToStandaloneRedactionConfig
+        Raises
+            CannotApplyRuleToStandaloneRedactionConfig
         """
-        raise CannotApplyRuleToStandaloneRedactionConfig('StandaloneRedactionConfig does not support additional rules.')
+        raise CannotApplyRuleToStandaloneRedactionConfig("StandaloneRedactionConfig does not support additional rules.")

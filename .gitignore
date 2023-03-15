@@ -9,3 +9,12 @@ templates/*/code_tmp
 templates/*/code.zip
 templates/*/*.ready.yaml
 *.egg-info
+/.pdm.toml
+/__pypackages__/
+/.pytest_cache/
+/.env
+/requirements.txt
+/tests/int/*.deploy.ready.yaml
+/tests/int/*.zip
+/tests/int/*.deployed
+/tests/int/*.executed

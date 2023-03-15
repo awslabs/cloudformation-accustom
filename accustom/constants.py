@@ -12,8 +12,9 @@ class Status:
 
     https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/crpg-ref-responses.html
     """
-    SUCCESS = 'SUCCESS'
-    FAILED = 'FAILED'
+
+    SUCCESS = "SUCCESS"
+    FAILED = "FAILED"
 
 
 class RequestType:
@@ -21,16 +22,18 @@ class RequestType:
 
     https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/crpg-ref-requesttypes.html
     """
-    CREATE = 'Create'
-    UPDATE = 'Update'
-    DELETE = 'Delete'
+
+    CREATE = "Create"
+    UPDATE = "Update"
+    DELETE = "Delete"
 
 
 class RedactMode:
     """RedactMode Options"""
-    ALLOWLIST = 'allow'
-    BLOCKLIST = 'block'
+
+    ALLOWLIST = "allow"
+    BLOCKLIST = "block"
 
     # DEPRECATED NAMES
-    BLACKLIST = 'black'
-    WHITELIST = 'white'
+    BLACKLIST = "black"
+    WHITELIST = "white"

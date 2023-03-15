@@ -8,8 +8,8 @@ Resources:
   SuccessFunction:
     Type: AWS::Lambda::Function
     Properties:
-      Code: test_timeout.zip
-      Handler: test_timeout.handler
+      Code: timeout.zip
+      Handler: timeout.handler
       MemorySize: 256
       Role: !GetAtt FullRole.Arn
       Runtime: python3.7
@@ -18,8 +18,8 @@ Resources:
   BypassFunction:
     Type: AWS::Lambda::Function
     Properties:
-      Code: test_timeout.zip
-      Handler: test_timeout.handler
+      Code: timeout.zip
+      Handler: timeout.handler
       MemorySize: 256
       Role: !GetAtt MissingRole.Arn
       Runtime: python3.7
@@ -28,8 +28,8 @@ Resources:
   TimeoutFunction:
     Type: AWS::Lambda::Function
     Properties:
-      Code: test_timeout.zip
-      Handler: test_timeout.handler
+      Code: timeout.zip
+      Handler: timeout.handler
       MemorySize: 256
       Role: !GetAtt FullRole.Arn
       Runtime: python3.7
@@ -42,8 +42,8 @@ Resources:
       - RouteTableAssociation
       - LogsEndpoint
     Properties:
-      Code: test_timeout.zip
-      Handler: test_timeout.handler
+      Code: timeout.zip
+      Handler: timeout.handler
       MemorySize: 256
       Role: !GetAtt FullRole.Arn
       Runtime: python3.7
