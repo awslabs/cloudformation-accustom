@@ -20,3 +20,8 @@ Resources:
     Type: Custom::TimeoutFunction
     Properties:
       ServiceToken: !ImportValue ST-TimeoutFunction
+  NoConnectExecution:
+    Type: Custom::NoConnectFunction
+    DeletionPolicy: Retain
+    Properties:
+      ServiceToken: !ImportValue ST-NoConnectFunction

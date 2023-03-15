@@ -1,0 +1,182 @@
+[project]
+name = "accustom"
+version = "1.3.0"
+description = "Accustom is a library for responding to Custom Resources in AWS CloudFormation using the decorator pattern."
+authors = [
+    { name = "Taylor Bertie", email = "bertiet@amazon.com" },
+]
+dependencies = [
+    "boto3>=1.26",
+    "botocore>=1.29",
+    "requests>=2.25",
+    "typing-extensions>=4.5",
+    "mypy>=1.1",
+    "boto3-stubs[cloudformation]>=1.26",
+    "boto3-stubs[logs]>=1.26",
+]
+requires-python = ">=3, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, !=3.6.*, <4"
+readme = "README.md"
+keywords = [
+    "cloudformation",
+    "lambda",
+    "custom",
+    "resource",
+    "decorator",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
+dynamic = []
+
+[project.license]
+text = "Apache-2.0"
+
+[project.urls]
+Homepage = "https://github.com/awslabs/cloudformation-accustom"
+
+[tool.pdm.version]
+source = "scm"
+
+[tool.pdm.dev-dependencies]
+test = [
+    "pytest>=7.2.2",
+    "awscli>=1.27",
+]
+lint = [
+    "black>=23.1.0",
+    "Flake8-pyproject>=1.2.2",
+    "flake8>=5.0.4",
+    "isort>=5.11.5",
+]
+
+[tool.pdm.scripts.require]
+cmd = "pdm export --format requirements --without-hashes --prod --output requirements.txt"
+help = "Generates requirements.txt for reference/manual install"
+
+[tool.pdm.scripts.int_make]
+cmd = "make --directory tests/int"
+help = "Executes an arbitary make command againsts the integration tests"
+
+[tool.pdm.scripts._prepare_test_deps]
+cmd = "pdm install --group test"
+help = "Install the dev dependencies required to perform tests"
+
+[tool.pdm.scripts._prepare_int_test_env]
+composite = [
+    "int_make unexecute",
+    "int_make execute",
+]
+help = "Uses the Integration Test Makefile to prepare the CloudFormation Stacks needed for testing"
+
+[tool.pdm.scripts._cleanup_int_test_env]
+composite = [
+    "int_make clean",
+]
+help = "Tears down the resources needed for testing"
+
+[tool.pdm.scripts.test]
+cmd = "pytest"
+help = "Execute the tests for the package"
+
+[tool.pdm.scripts._prepare_lint_deps]
+cmd = "pdm install --group lint"
+help = "Install the dev dependencies required to perform code linting"
+
+[tool.pdm.scripts.flake8]
+cmd = "flake8"
+help = "Run the flake8 the code"
+
+[tool.pdm.scripts.isort]
+cmd = "isort ."
+help = "Run isort against the code"
+
+[tool.pdm.scripts.black]
+cmd = "black ."
+help = "Run black against the code"
+
+[tool.pdm.scripts.lint]
+composite = [
+    "isort --check",
+    "black --check",
+    "flake8",
+]
+help = "Check code style against linters"
+
+[tool.pdm.scripts.post_lock]
+composite = [
+    "require",
+]
+help = "post_lock Hook: Generate requirements.txt and requirement_build.txt for reference/manual install"
+
+[tool.pdm.scripts.pre_test]
+composite = [
+    "require",
+    "_prepare_test_deps",
+    "_prepare_int_test_env",
+]
+help = "pre_test hook: Installs the packages and prepares enviroments needed to perform testing"
+
+[tool.pdm.scripts.post_test]
+composite = [
+    "_cleanup_int_test_env",
+]
+help = "post_test hook: Cleans up enviroments needed to perform testing"
+
+[tool.pdm.scripts.pre_lint]
+composite = [
+    "_prepare_lint_deps",
+]
+help = "pre_lint hook: Installs the paackages needed to perform linting"
+
+[tool.pdm.scripts.pre_publish]
+composite = [
+    "lint",
+    "test",
+]
+help = "pre_publish hook: Ensure that linting and testing is performed before publishing"
+
+[tool.pdm.script.format]
+composite = [
+    "isort",
+    "black",
+]
+help = "Format the code using Black and iSort"
+
+[tool.pytest.ini_options]
+addopts = "--ignore=__pypackages__"
+
+[tool.flake8]
+ignore = [
+    "E123",
+    "E203",
+    "W503",
+]
+exclude = "__pypackages__"
+max_line_length = 120
+per-file-ignores = [
+    "__init__.py:F401",
+]
+
+[tool.isort]
+profile = "black"
+line_length = 120
+multi_line_output = 3
+include_trailing_comma = true
+src_paths = [
+    "tests",
+    "accustom",
+]
+
+[tool.black]
+line-length = 120
+
+[build-system]
+requires = [
+    "pdm-pep517>=1.0.0",
+]
+build-backend = "pdm.pep517.api"

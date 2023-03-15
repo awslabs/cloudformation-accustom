@@ -1,9 +1,0 @@
-# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: Apache-2.0
-
-botocore>=1.29
-boto3>=1.26
-requests>=2.25
-requests-mock>=1.10
-typing-extensions>=4.5
-six>=1.16
