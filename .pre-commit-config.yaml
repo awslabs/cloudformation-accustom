@@ -1,0 +1,48 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.4.0
+  hooks:
+    - id: check-builtin-literals
+    - id: check-case-conflict
+    - id: check-docstring-first
+    - id: check-executables-have-shebangs
+    - id: check-shebang-scripts-are-executable
+    - id: check-symlinks
+    - id: check-toml
+    - id: check-yaml
+      exclude: '^tests/int/'
+      # Excluding these YAML files as they are CFN templates
+    - id: destroyed-symlinks
+    - id: detect-private-key
+    - id: end-of-file-fixer
+    - id: forbid-submodules
+    - id: name-tests-test
+      exclude: '^tests/int/(redact|timeout).py$'
+      # Excluding these files as they are not test files
+      args: [--pytest-test-first]
+    - id: no-commit-to-branch
+      args: [--branch, stable]
+    - id: trailing-whitespace
+      args: [--markdown-linebreak-ext=md]
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.1.1
+  hooks:
+    - id: mypy
+      language: system
+      # Need various MyPy plugins, thus using system python. Run "pdm install --dev --group lint" first
+- repo: https://github.com/PyCQA/isort
+  rev: 5.11.5
+  hooks:
+    - id: isort
+      args: [--check]
+- repo: https://github.com/psf/black
+  rev: 23.1.0
+  hooks:
+    - id: black
+      args: [--check]
+- repo: https://github.com/PyCQA/flake8
+  rev: 5.0.4
+  hooks:
+    - id: flake8
+      language: system
+      # Need various flake8 plugins, thus using system python. Run "pdm install --dev --group lint" first

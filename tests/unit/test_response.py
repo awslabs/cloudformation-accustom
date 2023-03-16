@@ -20,7 +20,7 @@ class ValidEventTests(TestCase):
             "RequestId": None,
             "ResourceType": None,
         }
-        self.assertFalse(is_valid_event(event))
+        self.assertFalse(is_valid_event(event))  # type: ignore
 
     def test_no_valid_request_type(self) -> None:
         event = {
@@ -31,7 +31,7 @@ class ValidEventTests(TestCase):
             "ResourceType": None,
             "LogicalResourceId": None,
         }
-        self.assertFalse(is_valid_event(event))
+        self.assertFalse(is_valid_event(event))  # type: ignore
 
     def test_invalid_url(self) -> None:
         event = {
@@ -42,7 +42,7 @@ class ValidEventTests(TestCase):
             "ResourceType": None,
             "LogicalResourceId": None,
         }
-        self.assertFalse(is_valid_event(event))
+        self.assertFalse(is_valid_event(event))  # type: ignore
 
     def test_missing_physical(self) -> None:
         event = {
@@ -53,7 +53,7 @@ class ValidEventTests(TestCase):
             "ResourceType": None,
             "LogicalResourceId": None,
         }
-        self.assertFalse(is_valid_event(event))
+        self.assertFalse(is_valid_event(event))  # type: ignore
 
     def test_included_physical(self) -> None:
         event = {
@@ -65,7 +65,7 @@ class ValidEventTests(TestCase):
             "LogicalResourceId": None,
             "PhysicalResourceId": None,
         }
-        self.assertTrue(is_valid_event(event))
+        self.assertTrue(is_valid_event(event))  # type: ignore
 
 
 class CollapseDataTests(TestCase):

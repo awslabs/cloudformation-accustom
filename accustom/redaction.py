@@ -9,6 +9,9 @@ This allows you to define a redaction policy for accustom
 import copy
 import logging
 import re
+from typing import Any, Dict, List
+
+from aws_lambda_typing.events import CloudFormationCustomResourceEvent
 
 from accustom.constants import RedactMode
 from accustom.Exceptions import (
@@ -28,7 +31,7 @@ REDACTED_STRING = "[REDACTED]"
 class RedactionRuleSet(object):
     """Class that allows you to define a redaction rule set for accustom"""
 
-    def __init__(self, resourceRegex: str = _RESOURCEREGEX_DEFAULT):
+    def __init__(self, resourceRegex: str = _RESOURCEREGEX_DEFAULT) -> None:
         """Init function for the class
 
         Args:
@@ -41,10 +44,10 @@ class RedactionRuleSet(object):
         if not isinstance(resourceRegex, str):
             raise TypeError("resourceRegex must be a string")
 
-        self.resourceRegex = resourceRegex
-        self._properties = []
+        self.resourceRegex: str = resourceRegex
+        self._properties: List[str] = []
 
-    def add_property_regex(self, propertiesRegex: str):
+    def add_property_regex(self, propertiesRegex: str) -> None:
         """Allows you to add a property regex to allowlist/blocklist
 
         Args:
@@ -58,7 +61,7 @@ class RedactionRuleSet(object):
             raise TypeError("propertiesRegex must be a string")
         self._properties.append(propertiesRegex)
 
-    def add_property(self, propertyName: str):
+    def add_property(self, propertyName: str) -> None:
         """Allows you to add a specific property to allowlist/blocklist
 
         Args:
@@ -77,7 +80,7 @@ class RedactionRuleSet(object):
 class RedactionConfig(object):
     """Class that defines a redaction policy for accustom"""
 
-    def __init__(self, redactMode: str = RedactMode.BLOCKLIST, redactResponseURL: bool = False):
+    def __init__(self, redactMode: str = RedactMode.BLOCKLIST, redactResponseURL: bool = False) -> None:
         """Init function for the class
 
         Args:
@@ -107,11 +110,11 @@ class RedactionConfig(object):
         if not isinstance(redactResponseURL, bool):
             raise TypeError("redactResponseURL must be of boolean type")
 
-        self.redactMode = redactMode
-        self.redactResponseURL = redactResponseURL
-        self._redactProperties = {}
+        self.redactMode: str = redactMode
+        self.redactResponseURL: bool = redactResponseURL
+        self._redactProperties: Dict[str, List[str]] = {}
 
-    def add_rule_set(self, ruleSet: RedactionRuleSet):
+    def add_rule_set(self, ruleSet: RedactionRuleSet) -> None:
         """This function will add a RedactionRuleSet object to the RedactionConfig.
 
         Args:
@@ -131,7 +134,7 @@ class RedactionConfig(object):
         # noinspection PyProtectedMember
         self._redactProperties[ruleSet.resourceRegex] = ruleSet._properties
 
-    def _redact(self, event: dict):
+    def _redact(self, event: CloudFormationCustomResourceEvent) -> Dict[str, Any]:
         """Internal Function. Not to be consumed outside accustom Library.
 
         This function will take in an event and return the event redacted as per the redaction config.
@@ -144,7 +147,7 @@ class RedactionConfig(object):
             )
             logger.error(message)
             raise NotValidRequestObjectException(message)
-        ec = copy.deepcopy(event)
+        ec: Dict[str, Any] = copy.deepcopy(event)  # type: ignore
         if self.redactMode == RedactMode.ALLOWLIST:
             if "ResourceProperties" in ec:
                 ec["ResourceProperties"] = {}
@@ -167,15 +170,17 @@ class RedactionConfig(object):
                             for m_item in filter(r.match, event["ResourceProperties"]):
                                 ec["ResourceProperties"][m_item] = event["ResourceProperties"][m_item]
                         if "OldResourceProperties" in ec:
-                            for m_item in filter(r.match, event["OldResourceProperties"]):
-                                ec["OldResourceProperties"][m_item] = event["OldResourceProperties"][m_item]
+                            for m_item in filter(r.match, event["OldResourceProperties"]):  # type: ignore
+                                ec["OldResourceProperties"][m_item] = event["OldResourceProperties"][  # type: ignore
+                                    m_item
+                                ]
         if self.redactMode == RedactMode.ALLOWLIST:
             if "ResourceProperties" in ec:
                 for key, value in event["ResourceProperties"].items():
                     if key not in ec["ResourceProperties"]:
                         ec["ResourceProperties"][key] = REDACTED_STRING
             if "OldResourceProperties" in ec:
-                for key, value in event["OldResourceProperties"].items():
+                for key, value in event["OldResourceProperties"].items():  # type: ignore
                     if key not in ec["OldResourceProperties"]:
                         ec["OldResourceProperties"][key] = REDACTED_STRING
 

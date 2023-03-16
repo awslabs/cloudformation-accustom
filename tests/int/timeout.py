@@ -7,7 +7,7 @@ Lambda Code for Testing Timeout and Chaining Functionality
 import logging
 from time import sleep
 
-from accustom import sdecorator as decorator
+from accustom import sdecorator as sdecorator
 
 logging.getLogger().setLevel(logging.DEBUG)
 
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 # noinspection PyUnusedLocal
-@decorator(hideResourceDeleteFailure=True, decoratorHandleDelete=True)
+@sdecorator(hideResourceDeleteFailure=True, decoratorHandleDelete=True, expectedProperties=["TestProperty"])
 def handler(event, context) -> None:
     """
     Stab handler for this Lambda Function

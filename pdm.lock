@@ -8,6 +8,15 @@ requires_python = ">=3.6"
 summary = "Classes Without Boilerplate"
 
 [[package]]
+name = "aws-lambda-typing"
+version = "2.16.4"
+requires_python = ">=3.6,<4.0"
+summary = "A package that provides type hints for AWS Lambda event, context and response objects"
+dependencies = [
+    "typing-extensions<5.0.0,>=4.1.1; python_version < \"3.8\"",
+]
+
+[[package]]
 name = "awscli"
 version = "1.27.91"
 requires_python = ">= 3.7"
@@ -50,9 +59,9 @@ dependencies = [
 
 [[package]]
 name = "boto3-stubs"
-version = "1.26.91"
+version = "1.26.92"
 requires_python = ">=3.7"
-summary = "Type annotations for boto3 1.26.91 generated with mypy-boto3-builder 7.13.0"
+summary = "Type annotations for boto3 1.26.92 generated with mypy-boto3-builder 7.13.0"
 dependencies = [
     "botocore-stubs",
     "types-s3transfer",
@@ -61,23 +70,23 @@ dependencies = [
 
 [[package]]
 name = "boto3-stubs"
-version = "1.26.91"
+version = "1.26.92"
 extras = ["cloudformation"]
 requires_python = ">=3.7"
-summary = "Type annotations for boto3 1.26.91 generated with mypy-boto3-builder 7.13.0"
+summary = "Type annotations for boto3 1.26.92 generated with mypy-boto3-builder 7.13.0"
 dependencies = [
-    "boto3-stubs==1.26.91",
+    "boto3-stubs==1.26.92",
     "mypy-boto3-cloudformation<1.27.0,>=1.26.0",
 ]
 
 [[package]]
 name = "boto3-stubs"
-version = "1.26.91"
+version = "1.26.92"
 extras = ["logs"]
 requires_python = ">=3.7"
-summary = "Type annotations for boto3 1.26.91 generated with mypy-boto3-builder 7.13.0"
+summary = "Type annotations for boto3 1.26.92 generated with mypy-boto3-builder 7.13.0"
 dependencies = [
-    "boto3-stubs==1.26.91",
+    "boto3-stubs==1.26.92",
     "mypy-boto3-logs<1.27.0,>=1.26.0",
 ]
 
@@ -94,7 +103,7 @@ dependencies = [
 
 [[package]]
 name = "botocore-stubs"
-version = "1.29.91"
+version = "1.29.92"
 requires_python = ">=3.7,<4.0"
 summary = "Type annotations and code completion for botocore"
 dependencies = [
@@ -106,6 +115,12 @@ name = "certifi"
 version = "2022.12.7"
 requires_python = ">=3.6"
 summary = "Python package for providing Mozilla's CA Bundle."
+
+[[package]]
+name = "cfgv"
+version = "3.3.1"
+requires_python = ">=3.6.1"
+summary = "Validate configuration and produce human readable error messages."
 
 [[package]]
 name = "charset-normalizer"
@@ -130,6 +145,11 @@ requires_python = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 summary = "Cross-platform colored terminal text."
 
 [[package]]
+name = "distlib"
+version = "0.3.6"
+summary = "Distribution utilities"
+
+[[package]]
 name = "docutils"
 version = "0.16"
 requires_python = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
@@ -140,6 +160,12 @@ name = "exceptiongroup"
 version = "1.1.1"
 requires_python = ">=3.7"
 summary = "Backport of PEP 654 (exception groups)"
+
+[[package]]
+name = "filelock"
+version = "3.10.0"
+requires_python = ">=3.7"
+summary = "A platform independent file lock."
 
 [[package]]
 name = "flake8"
@@ -162,6 +188,12 @@ dependencies = [
     "Flake8>=5",
     "TOMLi; python_version < \"3.11\"",
 ]
+
+[[package]]
+name = "identify"
+version = "2.5.20"
+requires_python = ">=3.7"
+summary = "File identification library for Python"
 
 [[package]]
 name = "idna"
@@ -240,6 +272,15 @@ requires_python = ">=3.5"
 summary = "Type system extensions for programs checked with the mypy type checker."
 
 [[package]]
+name = "nodeenv"
+version = "1.7.0"
+requires_python = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*"
+summary = "Node.js virtual environment builder"
+dependencies = [
+    "setuptools",
+]
+
+[[package]]
 name = "packaging"
 version = "23.0"
 requires_python = ">=3.7"
@@ -253,7 +294,7 @@ summary = "Utility library for gitignore style pattern matching of file paths."
 
 [[package]]
 name = "platformdirs"
-version = "3.1.1"
+version = "2.6.2"
 requires_python = ">=3.7"
 summary = "A small Python package for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
 dependencies = [
@@ -267,6 +308,20 @@ requires_python = ">=3.6"
 summary = "plugin and hook calling mechanisms for python"
 dependencies = [
     "importlib-metadata>=0.12; python_version < \"3.8\"",
+]
+
+[[package]]
+name = "pre-commit"
+version = "2.21.0"
+requires_python = ">=3.7"
+summary = "A framework for managing and maintaining multi-language pre-commit hooks."
+dependencies = [
+    "cfgv>=2.0.0",
+    "identify>=1.0.0",
+    "importlib-metadata; python_version < \"3.8\"",
+    "nodeenv>=0.11.1",
+    "pyyaml>=5.1",
+    "virtualenv>=20.10.0",
 ]
 
 [[package]]
@@ -348,6 +403,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "setuptools"
+version = "67.6.0"
+requires_python = ">=3.7"
+summary = "Easily download, build, install, upgrade, and uninstall Python packages"
+
+[[package]]
 name = "six"
 version = "1.16.0"
 requires_python = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
@@ -372,13 +433,26 @@ requires_python = ">=3.7,<4.0"
 summary = "Type annotations and code completion for awscrt"
 
 [[package]]
+name = "types-requests"
+version = "2.28.11.15"
+summary = "Typing stubs for requests"
+dependencies = [
+    "types-urllib3<1.27",
+]
+
+[[package]]
 name = "types-s3transfer"
-version = "0.6.0.post5"
+version = "0.6.0.post6"
 requires_python = ">=3.7,<4.0"
 summary = "Type annotations and code completion for s3transfer"
 dependencies = [
     "types-awscrt",
 ]
+
+[[package]]
+name = "types-urllib3"
+version = "1.26.25.8"
+summary = "Typing stubs for urllib3"
 
 [[package]]
 name = "typing-extensions"
@@ -393,6 +467,18 @@ requires_python = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*"
 summary = "HTTP library with thread-safe connection pooling, file post, and more."
 
 [[package]]
+name = "virtualenv"
+version = "20.16.2"
+requires_python = ">=3.6"
+summary = "Virtual Python Environment builder"
+dependencies = [
+    "distlib<1,>=0.3.1",
+    "filelock<4,>=3.2",
+    "importlib-metadata>=0.12; python_version < \"3.8\"",
+    "platformdirs<3,>=2",
+]
+
+[[package]]
 name = "zipp"
 version = "3.15.0"
 requires_python = ">=3.7"
@@ -400,12 +486,16 @@ summary = "Backport of pathlib-compatible object wrapper for zip files"
 
 [metadata]
 lock_version = "4.1"
-content_hash = "sha256:6902efedd8cc1644079015e0afd1078f39eb3b5d44af1885436f98bf1a1883d2"
+content_hash = "sha256:a062588600f8323f3910b7292f4889cdb9027fa4d51032303b26f1f1dcdb2447"
 
 [metadata.files]
 "attrs 22.2.0" = [
     {url = "https://files.pythonhosted.org/packages/21/31/3f468da74c7de4fcf9b25591e682856389b3400b4b62f201e65f15ea3e07/attrs-22.2.0.tar.gz", hash = "sha256:c9227bfc2f01993c03f68db37d1d15c9690188323c067c641f1a35ca58185f99"},
     {url = "https://files.pythonhosted.org/packages/fb/6e/6f83bf616d2becdf333a1640f1d463fef3150e2e926b7010cb0f81c95e88/attrs-22.2.0-py3-none-any.whl", hash = "sha256:29e95c7f6778868dbd49170f98f8818f78f3dc5e0e37c0b1f474e3561b240836"},
+]
+"aws-lambda-typing 2.16.4" = [
+    {url = "https://files.pythonhosted.org/packages/23/b5/c824d5e968737b76dd82257c16021bff3fc3886775144cd245ae69a0db09/aws-lambda-typing-2.16.4.tar.gz", hash = "sha256:49e8757dd55085115635c81a0534057e4335a24bda08dd75c3c0f12b38b2320f"},
+    {url = "https://files.pythonhosted.org/packages/6e/64/f3ab01d5fd2da1d9eb7639bece924bb2b7f499d2615c32369363738ed707/aws_lambda_typing-2.16.4-py3-none-any.whl", hash = "sha256:9d4d6cc91b90ed901cecfbd8de7daf6e3861628fb90e82ea5760424fbb1955f8"},
 ]
 "awscli 1.27.91" = [
     {url = "https://files.pythonhosted.org/packages/89/13/629723f37f5b0051c637a6b82589f9fd1fcce643fb02fab745cf915dbcae/awscli-1.27.91.tar.gz", hash = "sha256:b4cb314f622e4f456b79ab0977c12ff48e98708d4dffdb4dfbf7466c23b826b2"},
@@ -442,21 +532,25 @@ content_hash = "sha256:6902efedd8cc1644079015e0afd1078f39eb3b5d44af1885436f98bf1
     {url = "https://files.pythonhosted.org/packages/0d/f2/b64fa41a705e01c4325e1537306d1dc910b6692e6d1626567a512a924969/boto3-1.26.91.tar.gz", hash = "sha256:278d896e9090a976f41ec68da5c572bc4e5b7cb1e515f1898fee8cb2fadfb50d"},
     {url = "https://files.pythonhosted.org/packages/bd/3b/b59a11ea95f73b78ccd6474909d3bc05b6aebf10983421c60e6f37d00755/boto3-1.26.91-py3-none-any.whl", hash = "sha256:3ce2225a61832d69831d669d912424ea3863268ca1cfa2a82203bb90952acefa"},
 ]
-"boto3-stubs 1.26.91" = [
-    {url = "https://files.pythonhosted.org/packages/35/d8/410bfded20a877e4db513e24bff1c9d6ede5885ececb2de36bd093988321/boto3-stubs-1.26.91.tar.gz", hash = "sha256:37e8ab9eef3c24ca3dbcd8b2eeb6987e96592f8937b6afcdf4dd6a40820a57b9"},
-    {url = "https://files.pythonhosted.org/packages/b5/ae/557544f6a6b68eeb619eb9aeece6ec0369f281a073b15952f59e1cede4b5/boto3_stubs-1.26.91-py3-none-any.whl", hash = "sha256:8f64e0fdca1bed992b55f8fe40894fc0e60e79058576577fac20d204037a7100"},
+"boto3-stubs 1.26.92" = [
+    {url = "https://files.pythonhosted.org/packages/4b/ca/6dbe41078f32b59443df87d1b5efab4e3ec1d1f9cd2ea9c6d4dc36dcfa28/boto3_stubs-1.26.92-py3-none-any.whl", hash = "sha256:c078471b8ad9b88a987bbe184fce2520171b8ee3d3e0e5deb2e90af79fa55eeb"},
+    {url = "https://files.pythonhosted.org/packages/e9/26/cc88cdb8691847bfb1f4204ee68f75dff5332ce3a881cc26ef27309bee98/boto3-stubs-1.26.92.tar.gz", hash = "sha256:484ae313950e97fa93a95bd89046e8da5026cb8d98afeaa419b91cf2888bebbf"},
 ]
 "botocore 1.29.91" = [
     {url = "https://files.pythonhosted.org/packages/5a/32/92642d3f17b11d3498caf644abd41b43f44b87ff02de0c215b31c0aa555e/botocore-1.29.91-py3-none-any.whl", hash = "sha256:4ed6a488aee1b42367eace71f7d0993dda05b02eebd7dcdd78db5c9ce3d80da5"},
     {url = "https://files.pythonhosted.org/packages/df/8d/9f006c2647f65a6278b7ec19257b1e9e9411f29e6423c08767c71ca01974/botocore-1.29.91.tar.gz", hash = "sha256:a8a800a2a945da807758cace539fc5b5ec1d5082ce363799d3a3870c2c4ed6fc"},
 ]
-"botocore-stubs 1.29.91" = [
-    {url = "https://files.pythonhosted.org/packages/0c/cf/e65c137c0cdeb3d5f87374eeab6e9ee0b879565eef69457ea5fdb54e9016/botocore_stubs-1.29.91.tar.gz", hash = "sha256:2026a606620c75663a24e144a2fd4254240b517589e54405d502387e639761e9"},
-    {url = "https://files.pythonhosted.org/packages/56/6f/50e47c3ed9781d3957646349ce1543fc8edf6ac2258b0a56a2289f7d1796/botocore_stubs-1.29.91-py3-none-any.whl", hash = "sha256:7c606b88534f9bf4b86c69fab42633738a67afd402fd5809e48edcf68ffdea23"},
+"botocore-stubs 1.29.92" = [
+    {url = "https://files.pythonhosted.org/packages/1f/d6/485594b904581306913ddde39d920ecea09e996f0304f853d5f41b3e18d9/botocore_stubs-1.29.92.tar.gz", hash = "sha256:cfe675d4e3a0d7b6183ef45f85142700cc9691f592e34a9bdba5c67f3e1ba445"},
+    {url = "https://files.pythonhosted.org/packages/7f/16/68719e9de93462eadf75c6b561926cfd6731afb6246437fb095c90bbb1eb/botocore_stubs-1.29.92-py3-none-any.whl", hash = "sha256:9f039a811d37d7c4d4387824ec5851f5f9ee43280322966dbb5f046141137c57"},
 ]
 "certifi 2022.12.7" = [
     {url = "https://files.pythonhosted.org/packages/37/f7/2b1b0ec44fdc30a3d31dfebe52226be9ddc40cd6c0f34ffc8923ba423b69/certifi-2022.12.7.tar.gz", hash = "sha256:35824b4c3a97115964b408844d64aa14db1cc518f6562e8d7261699d1350a9e3"},
     {url = "https://files.pythonhosted.org/packages/71/4c/3db2b8021bd6f2f0ceb0e088d6b2d49147671f25832fb17970e9b583d742/certifi-2022.12.7-py3-none-any.whl", hash = "sha256:4ad3232f5e926d6718ec31cfc1fcadfde020920e278684144551c91769c7bc18"},
+]
+"cfgv 3.3.1" = [
+    {url = "https://files.pythonhosted.org/packages/6d/82/0a0ebd35bae9981dea55c06f8e6aaf44a49171ad798795c72c6f64cba4c2/cfgv-3.3.1-py2.py3-none-any.whl", hash = "sha256:c6a0883f3917a037485059700b9e75da2464e6c27051014ad85ba6aaa5884426"},
+    {url = "https://files.pythonhosted.org/packages/c4/bf/d0d622b660d414a47dc7f0d303791a627663f554345b21250e39e7acb48b/cfgv-3.3.1.tar.gz", hash = "sha256:f5a830efb9ce7a445376bb66ec94c638a9787422f96264c98edc6bdeed8ab736"},
 ]
 "charset-normalizer 3.1.0" = [
     {url = "https://files.pythonhosted.org/packages/00/47/f14533da238134f5067fb1d951eb03d5c4be895d6afb11c7ebd07d111acb/charset_normalizer-3.1.0-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3a5fc78f9e3f501a1614a98f7c54d3969f3ad9bba8ba3d9b438c3bc5d047dd28"},
@@ -543,6 +637,10 @@ content_hash = "sha256:6902efedd8cc1644079015e0afd1078f39eb3b5d44af1885436f98bf1
     {url = "https://files.pythonhosted.org/packages/1f/bb/5d3246097ab77fa083a61bd8d3d527b7ae063c7d8e8671b1cf8c4ec10cbe/colorama-0.4.4.tar.gz", hash = "sha256:5941b2b48a20143d2267e95b1c2a7603ce057ee39fd88e7329b0c292aa16869b"},
     {url = "https://files.pythonhosted.org/packages/44/98/5b86278fbbf250d239ae0ecb724f8572af1c91f4a11edf4d36a206189440/colorama-0.4.4-py2.py3-none-any.whl", hash = "sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2"},
 ]
+"distlib 0.3.6" = [
+    {url = "https://files.pythonhosted.org/packages/58/07/815476ae605bcc5f95c87a62b95e74a1bce0878bc7a3119bc2bf4178f175/distlib-0.3.6.tar.gz", hash = "sha256:14bad2d9b04d3a36127ac97f30b12a19268f211063d8f8ee4f47108896e11b46"},
+    {url = "https://files.pythonhosted.org/packages/76/cb/6bbd2b10170ed991cf64e8c8b85e01f2fb38f95d1bc77617569e0b0b26ac/distlib-0.3.6-py2.py3-none-any.whl", hash = "sha256:f35c4b692542ca110de7ef0bea44d73981caeb34ca0b9b6b2e6d7790dda8f80e"},
+]
 "docutils 0.16" = [
     {url = "https://files.pythonhosted.org/packages/2f/e0/3d435b34abd2d62e8206171892f174b180cd37b09d57b924ca5c2ef2219d/docutils-0.16.tar.gz", hash = "sha256:c2de3a60e9e7d07be26b7f2b00ca0309c207e06c100f9cc2a94931fc75a478fc"},
     {url = "https://files.pythonhosted.org/packages/81/44/8a15e45ffa96e6cf82956dd8d7af9e666357e16b0d93b253903475ee947f/docutils-0.16-py2.py3-none-any.whl", hash = "sha256:0c5b78adfbf7762415433f5515cd5c9e762339e23369dbe8000d84a4bf4ab3af"},
@@ -551,12 +649,20 @@ content_hash = "sha256:6902efedd8cc1644079015e0afd1078f39eb3b5d44af1885436f98bf1
     {url = "https://files.pythonhosted.org/packages/61/97/17ed81b7a8d24d8f69b62c0db37abbd8c0042d4b3fc429c73dab986e7483/exceptiongroup-1.1.1-py3-none-any.whl", hash = "sha256:232c37c63e4f682982c8b6459f33a8981039e5fb8756b2074364e5055c498c9e"},
     {url = "https://files.pythonhosted.org/packages/cc/38/57f14ddc8e8baeddd8993a36fe57ce7b4ba174c35048b9a6d270bb01e833/exceptiongroup-1.1.1.tar.gz", hash = "sha256:d484c3090ba2889ae2928419117447a14daf3c1231d5e30d0aae34f354f01785"},
 ]
+"filelock 3.10.0" = [
+    {url = "https://files.pythonhosted.org/packages/4f/1f/6e1b740698069650b245744957a25957d599b953550a959ab2a584a8825b/filelock-3.10.0.tar.gz", hash = "sha256:3199fd0d3faea8b911be52b663dfccceb84c95949dd13179aa21436d1a79c4ce"},
+    {url = "https://files.pythonhosted.org/packages/9a/eb/95844b279593fd79c0a4d5eadad029203528509bccb0efe117543e1a1704/filelock-3.10.0-py3-none-any.whl", hash = "sha256:e90b34656470756edf8b19656785c5fea73afa1953f3e1b0d645cef11cab3182"},
+]
 "flake8 5.0.4" = [
     {url = "https://files.pythonhosted.org/packages/ad/00/9808c62b2d529cefc69ce4e4a1ea42c0f855effa55817b7327ec5b75e60a/flake8-5.0.4.tar.gz", hash = "sha256:6fbe320aad8d6b95cec8b8e47bc933004678dc63095be98528b7bdd2a9f510db"},
     {url = "https://files.pythonhosted.org/packages/cf/a0/b881b63a17a59d9d07f5c0cc91a29182c8e8a9aa2bde5b3b2b16519c02f4/flake8-5.0.4-py2.py3-none-any.whl", hash = "sha256:7a1cf6b73744f5806ab95e526f6f0d8c01c66d7bbe349562d22dfca20610b248"},
 ]
 "flake8-pyproject 1.2.2" = [
     {url = "https://files.pythonhosted.org/packages/91/8a/607fc3cb97714873e3c333afb4927e0341cec2677a26ca0dc7e0e666f016/flake8_pyproject-1.2.2-py3-none-any.whl", hash = "sha256:52d412219e7db6227faa654675b1435947b11d49b453f3eced760f19bdd6f06a"},
+]
+"identify 2.5.20" = [
+    {url = "https://files.pythonhosted.org/packages/cb/ab/6676311e382e3fe9cd14baf09d98dfe06b6a64ceb61621a5d07cece75156/identify-2.5.20.tar.gz", hash = "sha256:c8b288552bc5f05a08aff09af2f58e6976bf8ac87beb38498a0e3d98ba64eb18"},
+    {url = "https://files.pythonhosted.org/packages/eb/c0/030fa82a32393f00180749950bffe053aa9033405adb05d47bc956fdccda/identify-2.5.20-py2.py3-none-any.whl", hash = "sha256:5dfef8a745ca4f2c95f27e9db74cb4c8b6d9916383988e8791f3595868f78a33"},
 ]
 "idna 3.4" = [
     {url = "https://files.pythonhosted.org/packages/8b/e1/43beb3d38dba6cb420cefa297822eac205a277ab43e5ba5d5c46faf96438/idna-3.4.tar.gz", hash = "sha256:814f528e8dead7d329833b91c5faa87d60bf71824cd12a7530b5526063d02cb4"},
@@ -622,6 +728,10 @@ content_hash = "sha256:6902efedd8cc1644079015e0afd1078f39eb3b5d44af1885436f98bf1
     {url = "https://files.pythonhosted.org/packages/2a/e2/5d3f6ada4297caebe1a2add3b126fe800c96f56dbe5d1988a2cbe0b267aa/mypy_extensions-1.0.0-py3-none-any.whl", hash = "sha256:4392f6c0eb8a5668a69e23d168ffa70f0be9ccfd32b5cc2d26a34ae5b844552d"},
     {url = "https://files.pythonhosted.org/packages/98/a4/1ab47638b92648243faf97a5aeb6ea83059cc3624972ab6b8d2316078d3f/mypy_extensions-1.0.0.tar.gz", hash = "sha256:75dbf8955dc00442a438fc4d0666508a9a97b6bd41aa2f0ffe9d2f2725af0782"},
 ]
+"nodeenv 1.7.0" = [
+    {url = "https://files.pythonhosted.org/packages/96/a8/d3b5baead78adadacb99e7281b3e842126da825cf53df61688cfc8b8ff91/nodeenv-1.7.0-py2.py3-none-any.whl", hash = "sha256:27083a7b96a25f2f5e1d8cb4b6317ee8aeda3bdd121394e5ac54e498028a042e"},
+    {url = "https://files.pythonhosted.org/packages/f3/9d/a28ecbd1721cd6c0ea65da6bfb2771d31c5d7e32d916a8f643b062530af3/nodeenv-1.7.0.tar.gz", hash = "sha256:e0e7f7dfb85fc5394c6fe1e8fa98131a2473e04311a45afb6508f7cf1836fa2b"},
+]
 "packaging 23.0" = [
     {url = "https://files.pythonhosted.org/packages/47/d5/aca8ff6f49aa5565df1c826e7bf5e85a6df852ee063600c1efa5b932968c/packaging-23.0.tar.gz", hash = "sha256:b6ad297f8907de0fa2fe1ccbd26fdaf387f5f47c7275fedf8cce89f99446cf97"},
     {url = "https://files.pythonhosted.org/packages/ed/35/a31aed2993e398f6b09a790a181a7927eb14610ee8bbf02dc14d31677f1c/packaging-23.0-py3-none-any.whl", hash = "sha256:714ac14496c3e68c99c29b00845f7a2b85f3bb6f1078fd9f72fd20f0570002b2"},
@@ -630,13 +740,17 @@ content_hash = "sha256:6902efedd8cc1644079015e0afd1078f39eb3b5d44af1885436f98bf1
     {url = "https://files.pythonhosted.org/packages/95/60/d93628975242cc515ab2b8f5b2fc831d8be2eff32f5a1be4776d49305d13/pathspec-0.11.1.tar.gz", hash = "sha256:2798de800fa92780e33acca925945e9a19a133b715067cf165b8866c15a31687"},
     {url = "https://files.pythonhosted.org/packages/be/c8/551a803a6ebb174ec1c124e68b449b98a0961f0b737def601e3c1fbb4cfd/pathspec-0.11.1-py3-none-any.whl", hash = "sha256:d8af70af76652554bd134c22b3e8a1cc46ed7d91edcdd721ef1a0c51a84a5293"},
 ]
-"platformdirs 3.1.1" = [
-    {url = "https://files.pythonhosted.org/packages/79/c4/f98a05535344f79699bbd494e56ac9efc986b7a253fe9f4dba7414a7f505/platformdirs-3.1.1.tar.gz", hash = "sha256:024996549ee88ec1a9aa99ff7f8fc819bb59e2c3477b410d90a16d32d6e707aa"},
-    {url = "https://files.pythonhosted.org/packages/7b/e1/593f693096c50411a2bf9571f66bc3be9d0f79a4a50e95aab581458b0e3c/platformdirs-3.1.1-py3-none-any.whl", hash = "sha256:e5986afb596e4bb5bde29a79ac9061aa955b94fca2399b7aaac4090860920dd8"},
+"platformdirs 2.6.2" = [
+    {url = "https://files.pythonhosted.org/packages/c1/c7/9be9d651b93efce682b45142a6267034fc4215972780748618c02e236361/platformdirs-2.6.2-py3-none-any.whl", hash = "sha256:83c8f6d04389165de7c9b6f0c682439697887bca0aa2f1c87ef1826be3584490"},
+    {url = "https://files.pythonhosted.org/packages/cf/4d/198b7e6c6c2b152f4f9f4cdf975d3590e33e63f1920f2d89af7f0390e6db/platformdirs-2.6.2.tar.gz", hash = "sha256:e1fea1fe471b9ff8332e229df3cb7de4f53eeea4998d3b6bfff542115e998bd2"},
 ]
 "pluggy 1.0.0" = [
     {url = "https://files.pythonhosted.org/packages/9e/01/f38e2ff29715251cf25532b9082a1589ab7e4f571ced434f98d0139336dc/pluggy-1.0.0-py2.py3-none-any.whl", hash = "sha256:74134bbf457f031a36d68416e1509f34bd5ccc019f0bcc952c7b909d06b37bd3"},
     {url = "https://files.pythonhosted.org/packages/a1/16/db2d7de3474b6e37cbb9c008965ee63835bba517e22cdb8c35b5116b5ce1/pluggy-1.0.0.tar.gz", hash = "sha256:4224373bacce55f955a878bf9cfa763c1e360858e330072059e10bad68531159"},
+]
+"pre-commit 2.21.0" = [
+    {url = "https://files.pythonhosted.org/packages/6b/00/1637ae945c6e10838ef5c41965f1c864e59301811bb203e979f335608e7c/pre_commit-2.21.0.tar.gz", hash = "sha256:31ef31af7e474a8d8995027fefdfcf509b5c913ff31f2015b4ec4beb26a6f658"},
+    {url = "https://files.pythonhosted.org/packages/a6/6b/6cfe3a8b351b54f4b6c6d2ad4286804e3367f628dce379c603d3b96635f4/pre_commit-2.21.0-py2.py3-none-any.whl", hash = "sha256:e2f91727039fc39a92f58a588a25b87f936de6567eed4f0e673e0507edc75bad"},
 ]
 "pyasn1 0.4.8" = [
     {url = "https://files.pythonhosted.org/packages/62/1e/a94a8d635fa3ce4cfc7f506003548d0a2447ae76fd5ca53932970fe3053f/pyasn1-0.4.8-py2.py3-none-any.whl", hash = "sha256:39c7e2ec30515947ff4e87fb6f456dfc6e84857d34be479c9d4a4ba4bf46aa5d"},
@@ -701,6 +815,10 @@ content_hash = "sha256:6902efedd8cc1644079015e0afd1078f39eb3b5d44af1885436f98bf1
     {url = "https://files.pythonhosted.org/packages/5e/c6/af903b5fab3f9b5b1e883f49a770066314c6dcceb589cf938d48c89556c1/s3transfer-0.6.0-py3-none-any.whl", hash = "sha256:06176b74f3a15f61f1b4f25a1fc29a4429040b7647133a463da8fa5bd28d5ecd"},
     {url = "https://files.pythonhosted.org/packages/e1/eb/e57c93d5cd5edf8c1d124c831ef916601540db70acd96fa21fe60cef1365/s3transfer-0.6.0.tar.gz", hash = "sha256:2ed07d3866f523cc561bf4a00fc5535827981b117dd7876f036b0c1aca42c947"},
 ]
+"setuptools 67.6.0" = [
+    {url = "https://files.pythonhosted.org/packages/25/f3/d68c20919bc774c6cb127f1762f2f2f999d700a58198556e883dd3700e58/setuptools-67.6.0.tar.gz", hash = "sha256:2ee892cd5f29f3373097f5a814697e397cf3ce313616df0af11231e2ad118077"},
+    {url = "https://files.pythonhosted.org/packages/c3/9e/8a7ba2c9984a060daa6c6f9fff4d576b7ace3936239d6b771541eab972ed/setuptools-67.6.0-py3-none-any.whl", hash = "sha256:b78aaa36f6b90a074c1fa651168723acbf45d14cb1196b6f02c0fd07f17623b2"},
+]
 "six 1.16.0" = [
     {url = "https://files.pythonhosted.org/packages/71/39/171f1c67cd00715f190ba0b100d606d440a28c93c7714febeca8b79af85e/six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
     {url = "https://files.pythonhosted.org/packages/d9/5a/e7c31adbe875f2abbb91bd84cf2dc52d792b5a01506781dbcf25c91daf11/six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
@@ -739,9 +857,17 @@ content_hash = "sha256:6902efedd8cc1644079015e0afd1078f39eb3b5d44af1885436f98bf1
     {url = "https://files.pythonhosted.org/packages/40/71/ee16ea3ca9bfcd894199be208ecf5147bded28b86e78823c1847919e6cd8/types_awscrt-0.16.12.tar.gz", hash = "sha256:fca34b9c30e39567838adc51cc186fae92d702741c7aaf835e19c3eb1bd4d8dc"},
     {url = "https://files.pythonhosted.org/packages/67/91/67196c77154fc827fc684a94e0738cf69479ec16974c5ac0761ef5cb88fa/types_awscrt-0.16.12-py3-none-any.whl", hash = "sha256:bcf306359098f89fa3bcba962c3efcde98c1fc24919d73fc727261174f5ef9aa"},
 ]
-"types-s3transfer 0.6.0.post5" = [
-    {url = "https://files.pythonhosted.org/packages/25/1b/40d8a9585db074c1ca5e40cd0bcd08bdd5539fd3d39f5a4101f429c8871c/types_s3transfer-0.6.0.post5.tar.gz", hash = "sha256:2cf1e07cf4d1a5a2a68d89c654f45d9c3b678d39f7fe03a6f36903b6dbd3bcbc"},
-    {url = "https://files.pythonhosted.org/packages/f9/9c/8003bedc8b176bdfb4fbbea75d77e2b213550014115d809955c601ca225d/types_s3transfer-0.6.0.post5-py3-none-any.whl", hash = "sha256:cfcbee11c16d60af3feb3dbffea3a85b32129235b562912dece310a45ae83a2c"},
+"types-requests 2.28.11.15" = [
+    {url = "https://files.pythonhosted.org/packages/40/78/47e77dfeb78ad1f7bb43b0d92cba6fa8d13dd4367cc049a1b1f61249f7b1/types_requests-2.28.11.15-py3-none-any.whl", hash = "sha256:a05e4c7bc967518fba5789c341ea8b0c942776ee474c7873129a61161978e586"},
+    {url = "https://files.pythonhosted.org/packages/fc/9b/a29ff9475078dce0643de2a3fb0960fb6e8f1db75c65a80139165673a7cf/types-requests-2.28.11.15.tar.gz", hash = "sha256:fc8eaa09cc014699c6b63c60c2e3add0c8b09a410c818b5ac6e65f92a26dde09"},
+]
+"types-s3transfer 0.6.0.post6" = [
+    {url = "https://files.pythonhosted.org/packages/02/c0/dfd5081b1a99b53bb2d4686022ef5acaa3467b8fdbf809d6542799e02d46/types_s3transfer-0.6.0.post6.tar.gz", hash = "sha256:e05c6d86c2d5271a5170a21f8a0222ca5f2d5b91aad7e9d436cca24c8e1ae13c"},
+    {url = "https://files.pythonhosted.org/packages/3c/c7/30f1194b8f44182bf92b88de44f10b0b879e676214949bb1daf3da12f039/types_s3transfer-0.6.0.post6-py3-none-any.whl", hash = "sha256:03af77eef369a9901422cadf3ad270709876421d8eb445ddbd78a58ac802a464"},
+]
+"types-urllib3 1.26.25.8" = [
+    {url = "https://files.pythonhosted.org/packages/03/58/5294b587731ecd9255778b7db574fae40a9113e184e6f62652d8952c5cf6/types-urllib3-1.26.25.8.tar.gz", hash = "sha256:ecf43c42d8ee439d732a1110b4901e9017a79a38daca26f08e42c8460069392c"},
+    {url = "https://files.pythonhosted.org/packages/30/29/3ae36523276099dfe4835014875a464c745e8588bf8bec3cab1cb7850d34/types_urllib3-1.26.25.8-py3-none-any.whl", hash = "sha256:95ea847fbf0bf675f50c8ae19a665baedcf07e6b4641662c4c3c72e7b2edf1a9"},
 ]
 "typing-extensions 4.5.0" = [
     {url = "https://files.pythonhosted.org/packages/31/25/5abcd82372d3d4a3932e1fa8c3dbf9efac10cc7c0d16e78467460571b404/typing_extensions-4.5.0-py3-none-any.whl", hash = "sha256:fb33085c39dd998ac16d1431ebc293a8b3eedd00fd4a32de0ff79002c19511b4"},
@@ -750,6 +876,10 @@ content_hash = "sha256:6902efedd8cc1644079015e0afd1078f39eb3b5d44af1885436f98bf1
 "urllib3 1.26.15" = [
     {url = "https://files.pythonhosted.org/packages/21/79/6372d8c0d0641b4072889f3ff84f279b738cd8595b64c8e0496d4e848122/urllib3-1.26.15.tar.gz", hash = "sha256:8a388717b9476f934a21484e8c8e61875ab60644d29b9b39e11e4b9dc1c6b305"},
     {url = "https://files.pythonhosted.org/packages/7b/f5/890a0baca17a61c1f92f72b81d3c31523c99bec609e60c292ea55b387ae8/urllib3-1.26.15-py2.py3-none-any.whl", hash = "sha256:aa751d169e23c7479ce47a0cb0da579e3ede798f994f5816a74e4f4500dcea42"},
+]
+"virtualenv 20.16.2" = [
+    {url = "https://files.pythonhosted.org/packages/9d/17/5a822952d90f791947f9d1d11c84c055ffc3b7a315c2552d4f46a0d6cd12/virtualenv-20.16.2.tar.gz", hash = "sha256:0ef5be6d07181946891f5abc8047fda8bc2f0b4b9bf222c64e6e8963baee76db"},
+    {url = "https://files.pythonhosted.org/packages/f6/5e/1c73595c491b4cceffcb1aebf87eb54b9a5d48cc5226409ccf0ea96aeb91/virtualenv-20.16.2-py2.py3-none-any.whl", hash = "sha256:635b272a8e2f77cb051946f46c60a54ace3cb5e25568228bd6b57fc70eca9ff3"},
 ]
 "zipp 3.15.0" = [
     {url = "https://files.pythonhosted.org/packages/00/27/f0ac6b846684cecce1ee93d32450c45ab607f65c2e0255f0092032d91f07/zipp-3.15.0.tar.gz", hash = "sha256:112929ad649da941c23de50f356a2b5570c954b65150642bccdd66bf194d224b"},

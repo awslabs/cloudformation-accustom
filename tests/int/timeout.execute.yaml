@@ -9,10 +9,12 @@ Resources:
     Type: Custom::SuccessFunction
     Properties:
       ServiceToken: !ImportValue ST-SuccessFunction
+      TestProperty: TestValue
   BypassExecution:
     Type: Custom::BypassFunction
     Properties:
       ServiceToken: !ImportValue ST-BypassFunction
+      TestProperty: TestValue
   TimeoutExecution:
     DependsOn:
       - BypassExecution
@@ -20,8 +22,15 @@ Resources:
     Type: Custom::TimeoutFunction
     Properties:
       ServiceToken: !ImportValue ST-TimeoutFunction
+      TestProperty: TestValue
   NoConnectExecution:
     Type: Custom::NoConnectFunction
     DeletionPolicy: Retain
     Properties:
       ServiceToken: !ImportValue ST-NoConnectFunction
+      TestProperty: TestValue
+  InvalidPropertiesExecution:
+    Type: Custom::InvalidProperties
+    Properties:
+      ServiceToken: !ImportValue ST-SuccessFunction
+      NotTestProperty: NotTestValue

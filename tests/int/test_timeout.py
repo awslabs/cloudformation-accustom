@@ -52,6 +52,10 @@ class TimeoutTests(TestCase):
         resource = self.stack.Resource("TimeoutExecution")
         self.assertEqual(resource.resource_status, "CREATE_FAILED")
 
+    def test_invalid_properties_execution(self) -> None:
+        resource = self.stack.Resource("InvalidPropertiesExecution")
+        self.assertEqual(resource.resource_status, "CREATE_FAILED")
+
 
 if __name__ == "__main__":
     ut_main()

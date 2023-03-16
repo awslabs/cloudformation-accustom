@@ -7,16 +7,19 @@ This includes two decorators, one for the handler function, and one to apply to 
 functions.
 """
 
+import copy
 import json
 import logging
 from functools import wraps
-from typing import Any, Callable, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
 from uuid import uuid4
 
+from aws_lambda_typing.context import Context
+from aws_lambda_typing.events import CloudFormationCustomResourceEvent
 from boto3 import client
 from botocore import exceptions as boto_exceptions
 from botocore.client import Config
-from typing_extensions import ParamSpec
+from typing_extensions import Concatenate, ParamSpec
 
 from accustom.constants import RequestType, Status
 from accustom.Exceptions import (
@@ -45,9 +48,9 @@ TIMEOUT_THRESHOLD = 2000
 def decorator(
     enforceUseOfClass: bool = False,
     hideResourceDeleteFailure: bool = False,
-    redactConfig: RedactionConfig = None,
+    redactConfig: Optional[RedactionConfig] = None,
     timeoutFunction: bool = False,
-) -> Callable[_P, _T]:
+) -> Callable[[Callable[Concatenate[CloudFormationCustomResourceEvent, Context, _P], _T]], _T]:
     """Decorate a function to add exception handling and emit CloudFormation responses.
 
     Usage with Lambda:
@@ -90,10 +93,12 @@ def decorator(
     """
 
     # noinspection PyMissingOrEmptyDocstring
-    def inner_decorator(func: Callable[_P, _T]) -> Callable[_P, _T]:
+    def inner_decorator(func: Callable[Concatenate[CloudFormationCustomResourceEvent, Context, _P], _T]):
         # noinspection PyMissingOrEmptyDocstring
         @wraps(func)
-        def handler_wrapper(event: dict, context: Any, *args, **kwargs) -> Union[dict, str]:
+        def handler_wrapper(
+            event: CloudFormationCustomResourceEvent, context: Context, *args, **kwargs
+        ) -> Union[Dict[str, Any], str]:
             nonlocal redactConfig
             nonlocal timeoutFunction
             logger.info("Request received, processing...")
@@ -107,10 +112,10 @@ def decorator(
                 raise NotValidRequestObjectException(message)
 
             # Timeout Function Handler
-            if "LambdaParentRequestId" in event:
+            if "LambdaParentRequestId" in event["ResourceProperties"]:
                 logger.info(
                     f"This request has been invoked as a child, for parent logs please see request ID: "
-                    f'{event["LambdaParentRequestId"]}'
+                    f'{event["ResourceProperties"]["LambdaParentRequestId"]}'
                 )
             elif context is None and timeoutFunction:
                 logger.warning(
@@ -120,8 +125,8 @@ def decorator(
             elif timeoutFunction:
                 # Attempt to invoke the function. Depending on the error we get may continue execution or return
                 logger.info("Request has been invoked in Lambda with timeoutFunction set, attempting to invoke self")
-                p_event = event.copy()
-                p_event["LambdaParentRequestId"] = context.aws_request_id
+                p_event = copy.deepcopy(event)
+                p_event["ResourceProperties"]["LambdaParentRequestId"] = context.aws_request_id
                 payload = json.dumps(p_event).encode("UTF-8")
                 timeout = (context.get_remaining_time_in_millis() - TIMEOUT_THRESHOLD) / 1000
                 # Edge case where time is set to very low timeout, use half the timeout threshold as the timeout for
@@ -196,7 +201,7 @@ def decorator(
             try:
                 logger.info(f'Running CloudFormation request {event["RequestId"]} for stack: {event["StackId"]}')
                 # Run the function
-                result = func(event, context, *args, **kwargs)
+                result: Any = func(event, context, *args, **kwargs)
 
             except Exception as e:
                 # If there was an exception thrown by the function, send a failure response
@@ -314,8 +319,8 @@ def decorator(
 
 # noinspection PyPep8Naming
 def rdecorator(
-    decoratorHandleDelete: bool = False, expectedProperties: list = None, genUUID: bool = True
-) -> Callable[_P, _T]:
+    decoratorHandleDelete: bool = False, expectedProperties: Optional[List[str]] = None, genUUID: bool = True
+):
     """Decorate a function to add input validation for resource handler functions.
 
     Usage with Lambda:
@@ -362,10 +367,12 @@ def rdecorator(
     """
 
     # noinspection PyMissingOrEmptyDocstring
-    def resource_decorator_inner(func: Callable[_P, _T]) -> Callable[_P, _T]:
+    def resource_decorator_inner(
+        func: Callable[Concatenate[CloudFormationCustomResourceEvent, _P], _T]
+    ) -> Callable[Concatenate[CloudFormationCustomResourceEvent, _P], _T]:
         # noinspection PyMissingOrEmptyDocstring
         @wraps(func)
-        def resource_decorator_handler(event: dict, *args, **kwargs) -> Union[ResponseObject, dict, str]:
+        def resource_decorator_handler(event: CloudFormationCustomResourceEvent, *args, **kwargs) -> _T:
             if not is_valid_event(event):
                 # If it is not a valid event we need to raise an exception
                 message = (
@@ -378,22 +385,28 @@ def rdecorator(
 
             # Set the Physical Resource ID to a randomly generated UUID if it is not present
             if genUUID and "PhysicalResourceId" not in event:
-                event["PhysicalResourceId"] = str(uuid4())
-                logger.info(f'Set PhysicalResourceId to {event["PhysicalResourceId"]}')
+                event["PhysicalResourceId"] = str(uuid4())  # type: ignore
+                logger.info(f'Set PhysicalResourceId to {event["PhysicalResourceId"]}')  # type: ignore
 
             # Handle Delete when decoratorHandleDelete is set to True
             if decoratorHandleDelete and event["RequestType"] == RequestType.DELETE:
                 logger.info(f"Request type {RequestType.DELETE} detected, returning success without calling function")
-                return ResponseObject(physicalResourceId=event["PhysicalResourceId"])
+                return ResponseObject(physicalResourceId=event["PhysicalResourceId"])  # type: ignore
 
-            # Validate important properties exist
-            if expectedProperties is not None and isinstance(expectedProperties, (list, tuple)):
+            # Validate important properties exist except on Delete
+            if (
+                event["RequestType"] != RequestType.DELETE
+                and expectedProperties is not None
+                and isinstance(expectedProperties, (list, tuple))
+            ):
                 for index, item in enumerate(expectedProperties):
                     if item not in event["ResourceProperties"]:
                         err_msg = f"Property {item} missing, sending failure signal"
                         logger.info(err_msg)
                         return ResponseObject(
-                            reason=err_msg, responseStatus=Status.FAILED, physicalResourceId=event["PhysicalResourceId"]
+                            reason=err_msg,
+                            responseStatus=Status.FAILED,
+                            physicalResourceId=event.get("PhysicalResourceId"),  # type: ignore
                         )
 
             # If a list or tuple was not provided then log a warning
@@ -411,13 +424,13 @@ def rdecorator(
 # noinspection PyPep8Naming
 def sdecorator(
     decoratorHandleDelete: bool = False,
-    expectedProperties: list = None,
+    expectedProperties: Optional[List[str]] = None,
     genUUID: bool = True,
     enforceUseOfClass: bool = False,
     hideResourceDeleteFailure: bool = False,
-    redactConfig: RedactionConfig = None,
+    redactConfig: Optional[RedactionConfig] = None,
     timeoutFunction: bool = True,
-) -> Callable[_P, _T]:
+):
     """Decorate a function to add input validation for resource handler functions, exception handling and send
     CloudFormation responses.
 
@@ -470,8 +483,10 @@ def sdecorator(
         redactConfig = None
 
     # noinspection PyMissingOrEmptyDocstring
-    def standalone_decorator_inner(func: Callable[_P, _T]) -> Callable[_P, _T]:
-        # noinspection PyMissingOrEmptyDocstring
+    def standalone_decorator_inner(
+        func: Callable[Concatenate[CloudFormationCustomResourceEvent, Context, _P], _T]
+    ) -> Union[Dict[str, Any], str]:
+        # noinspection PyMissingOrEmptyDocstpdring
         @wraps(func)
         @decorator(
             enforceUseOfClass=enforceUseOfClass,
@@ -480,7 +495,9 @@ def sdecorator(
             timeoutFunction=timeoutFunction,
         )
         @rdecorator(decoratorHandleDelete=decoratorHandleDelete, expectedProperties=expectedProperties, genUUID=genUUID)
-        def standalone_decorator_handler(event: dict, context: Any, *args, **kwargs) -> Union[dict, str]:
+        def standalone_decorator_handler(
+            event: CloudFormationCustomResourceEvent, context: Context, *args, **kwargs
+        ) -> _T:
             return func(event, context, *args, **kwargs)
 
         return standalone_decorator_handler
