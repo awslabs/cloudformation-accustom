@@ -1,6 +1,6 @@
 [project]
 name = "accustom"
-version = "1.3.1"
+version = "1.3.2"
 description = "Accustom is a library for responding to Custom Resources in AWS CloudFormation using the decorator pattern."
 authors = [
     { name = "Taylor Bertie", email = "bertiet@amazon.com" },
