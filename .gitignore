@@ -18,3 +18,5 @@ templates/*/*.ready.yaml
 /tests/int/*.zip
 /tests/int/*.deployed
 /tests/int/*.executed
+/.mypy_cache/
+/.venv/

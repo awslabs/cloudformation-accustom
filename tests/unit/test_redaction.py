@@ -5,6 +5,7 @@
 Testing of "redaction" library
 """
 import logging
+from typing import Any, Dict
 from unittest import TestCase
 from unittest import main as ut_main
 
@@ -28,8 +29,7 @@ class RedactionRuleSetTests(TestCase):
     def test_invalid_init(self) -> None:
         # This test ignores the setUp Resources
         with self.assertRaises(TypeError):
-            # noinspection PyTypeChecker
-            RedactionRuleSet(0)
+            RedactionRuleSet(0)  # type: ignore
 
     def test_default_regex(self) -> None:
         self.assertEqual("^.*$", self.ruleSet.resourceRegex)
@@ -41,7 +41,7 @@ class RedactionRuleSetTests(TestCase):
     def test_adding_invalid_regex(self) -> None:
         with self.assertRaises(TypeError):
             # noinspection PyTypeChecker
-            self.ruleSet.add_property_regex(0)
+            self.ruleSet.add_property_regex(0)  # type: ignore
 
     def test_adding_property(self) -> None:
         self.ruleSet.add_property("Test")
@@ -50,7 +50,7 @@ class RedactionRuleSetTests(TestCase):
     def test_adding_invalid_property(self) -> None:
         with self.assertRaises(TypeError):
             # noinspection PyTypeChecker
-            self.ruleSet.add_property(0)
+            self.ruleSet.add_property(0)  # type: ignore
 
 
 # noinspection DuplicatedCode,PyUnusedLocal
@@ -97,13 +97,13 @@ class RedactionConfigTests(TestCase):
 
     def test_invalid_input_values(self) -> None:
         with self.assertRaises(TypeError):
-            RedactionConfig(redactMode="somestring")
+            RedactionConfig(redactMode="somestring")  # type: ignore
         with self.assertRaises(TypeError):
             # noinspection PyTypeChecker
-            RedactionConfig(redactMode=0)
+            RedactionConfig(redactMode=0)  # type: ignore
         with self.assertRaises(TypeError):
             # noinspection PyTypeChecker
-            RedactionConfig(redactResponseURL=0)
+            RedactionConfig(redactResponseURL=0)  # type: ignore
 
     def test_structure(self) -> None:
         rc = RedactionConfig()
@@ -119,7 +119,7 @@ class RedactionConfigTests(TestCase):
 
     def test_redactResponseURL(self) -> None:
         rc = RedactionConfig(redactResponseURL=True)
-        event = {
+        event: Dict[str, Any] = {
             "RequestType": "Create",
             "RequestId": "abcded",
             "ResponseURL": "https://localhost",
@@ -127,7 +127,7 @@ class RedactionConfigTests(TestCase):
             "LogicalResourceId": "Test",
             "ResourceType": "Custom::Test",
         }
-        revent = rc._redact(event)
+        revent = rc._redact(event)  # type: ignore
 
         self.assertIn("ResponseURL", event)
         self.assertNotIn("ResponseURL", revent)
@@ -136,7 +136,7 @@ class RedactionConfigTests(TestCase):
         rc = RedactionConfig()
         rc.add_rule_set(self.ruleSetDefault)
         rc.add_rule_set(self.ruleSetCustom)
-        event = {
+        event: Dict[str, Any] = {
             "RequestType": "Create",
             "RequestId": "abcded",
             "ResponseURL": "https://localhost",
@@ -152,7 +152,7 @@ class RedactionConfigTests(TestCase):
                 "DoNotDelete": NOT_REDACTED_STRING,
             },
         }
-        revent = rc._redact(event)
+        revent = rc._redact(event)  # type: ignore
 
         self.assertEqual(NOT_REDACTED_STRING, event["ResourceProperties"]["Test"])
         self.assertEqual(REDACTED_STRING, revent["ResourceProperties"]["Test"])
@@ -171,7 +171,7 @@ class RedactionConfigTests(TestCase):
         rc = RedactionConfig()
         rc.add_rule_set(self.ruleSetDefault)
         rc.add_rule_set(self.ruleSetCustom)
-        event = {
+        event: Dict[str, Any] = {
             "RequestType": "Create",
             "RequestId": "abcded",
             "ResponseURL": "https://localhost",
@@ -187,7 +187,7 @@ class RedactionConfigTests(TestCase):
                 "DoNotDelete": NOT_REDACTED_STRING,
             },
         }
-        revent = rc._redact(event)
+        revent = rc._redact(event)  # type: ignore
 
         self.assertEqual(NOT_REDACTED_STRING, event["ResourceProperties"]["Test"])
         self.assertEqual(REDACTED_STRING, revent["ResourceProperties"]["Test"])
@@ -206,7 +206,7 @@ class RedactionConfigTests(TestCase):
         rc = RedactionConfig(redactMode=RedactMode.ALLOWLIST)
         rc.add_rule_set(self.ruleSetDefault)
         rc.add_rule_set(self.ruleSetCustom)
-        event = {
+        event: Dict[str, Any] = {
             "RequestType": "Create",
             "RequestId": "abcded",
             "ResponseURL": "https://localhost",
@@ -222,7 +222,7 @@ class RedactionConfigTests(TestCase):
                 "DoNotDelete": NOT_REDACTED_STRING,
             },
         }
-        revent = rc._redact(event)
+        revent = rc._redact(event)  # type: ignore
 
         self.assertEqual(NOT_REDACTED_STRING, event["ResourceProperties"]["Test"])
         self.assertEqual(NOT_REDACTED_STRING, revent["ResourceProperties"]["Test"])
@@ -241,7 +241,7 @@ class RedactionConfigTests(TestCase):
         rc = RedactionConfig(redactMode=RedactMode.ALLOWLIST)
         rc.add_rule_set(self.ruleSetDefault)
         rc.add_rule_set(self.ruleSetCustom)
-        event = {
+        event: Dict[str, Any] = {
             "RequestType": "Create",
             "RequestId": "abcded",
             "ResponseURL": "https://localhost",
@@ -257,7 +257,7 @@ class RedactionConfigTests(TestCase):
                 "DoNotDelete": NOT_REDACTED_STRING,
             },
         }
-        revent = rc._redact(event)
+        revent = rc._redact(event)  # type: ignore
 
         self.assertEqual(NOT_REDACTED_STRING, event["ResourceProperties"]["Test"])
         self.assertEqual(NOT_REDACTED_STRING, revent["ResourceProperties"]["Test"])
@@ -276,7 +276,7 @@ class RedactionConfigTests(TestCase):
         rc = RedactionConfig()
         rc.add_rule_set(self.ruleSetDefault)
         rc.add_rule_set(self.ruleSetCustom)
-        event = {
+        event: Dict[str, Any] = {
             "RequestType": "Update",
             "RequestId": "abcded",
             "ResponseURL": "https://localhost",
@@ -301,7 +301,7 @@ class RedactionConfigTests(TestCase):
                 "DoNotDelete": NOT_REDACTED_STRING,
             },
         }
-        revent = rc._redact(event)
+        revent = rc._redact(event)  # type: ignore
 
         self.assertEqual(NOT_REDACTED_STRING, event["ResourceProperties"]["Test"])
         self.assertEqual(REDACTED_STRING, revent["ResourceProperties"]["Test"])
@@ -333,7 +333,7 @@ class RedactionConfigTests(TestCase):
         rc = RedactionConfig(redactMode=RedactMode.ALLOWLIST)
         rc.add_rule_set(self.ruleSetDefault)
         rc.add_rule_set(self.ruleSetCustom)
-        event = {
+        event: Dict[str, Any] = {
             "RequestType": "Update",
             "RequestId": "abcded",
             "ResponseURL": "https://localhost",
@@ -358,7 +358,7 @@ class RedactionConfigTests(TestCase):
                 "DoNotDelete": NOT_REDACTED_STRING,
             },
         }
-        revent = rc._redact(event)
+        revent = rc._redact(event)  # type: ignore
 
         self.assertEqual(NOT_REDACTED_STRING, event["ResourceProperties"]["Test"])
         self.assertEqual(NOT_REDACTED_STRING, revent["ResourceProperties"]["Test"])
@@ -431,13 +431,13 @@ class StandaloneRedactionConfigTests(TestCase):
 
     def test_invalid_input_values(self) -> None:
         with self.assertRaises(TypeError):
-            StandaloneRedactionConfig(self.ruleSetDefault, redactMode="somestring")
+            StandaloneRedactionConfig(self.ruleSetDefault, redactMode="somestring")  # type: ignore
         with self.assertRaises(TypeError):
             # noinspection PyTypeChecker
-            StandaloneRedactionConfig(self.ruleSetDefault, redactMode=0)
+            StandaloneRedactionConfig(self.ruleSetDefault, redactMode=0)  # type: ignore
         with self.assertRaises(TypeError):
             # noinspection PyTypeChecker
-            StandaloneRedactionConfig(self.ruleSetDefault, redactResponseURL=0)
+            StandaloneRedactionConfig(self.ruleSetDefault, redactResponseURL=0)  # type: ignore
         with self.assertRaises(CannotApplyRuleToStandaloneRedactionConfig):
             rc = StandaloneRedactionConfig(self.ruleSetDefault)
             rc.add_rule_set(self.ruleSetCustom)
@@ -451,7 +451,7 @@ class StandaloneRedactionConfigTests(TestCase):
 
     def test_redactResponseURL(self) -> None:
         rc = StandaloneRedactionConfig(self.ruleSetDefault, redactResponseURL=True)
-        event = {
+        event: Dict[str, Any] = {
             "RequestType": "Create",
             "RequestId": "abcded",
             "ResponseURL": "https://localhost",
@@ -459,14 +459,14 @@ class StandaloneRedactionConfigTests(TestCase):
             "LogicalResourceId": "Test",
             "ResourceType": "Custom::Test",
         }
-        revent = rc._redact(event)
+        revent = rc._redact(event)  # type: ignore
 
         self.assertIn("ResponseURL", event)
         self.assertNotIn("ResponseURL", revent)
 
     def test_blocklist(self) -> None:
         rc = StandaloneRedactionConfig(self.ruleSetDefault)
-        event = {
+        event: Dict[str, Any] = {
             "RequestType": "Create",
             "RequestId": "abcded",
             "ResponseURL": "https://localhost",
@@ -482,7 +482,7 @@ class StandaloneRedactionConfigTests(TestCase):
                 "DoNotDelete": NOT_REDACTED_STRING,
             },
         }
-        revent = rc._redact(event)
+        revent = rc._redact(event)  # type: ignore
 
         self.assertEqual(NOT_REDACTED_STRING, event["ResourceProperties"]["Test"])
         self.assertEqual(REDACTED_STRING, revent["ResourceProperties"]["Test"])
@@ -499,7 +499,7 @@ class StandaloneRedactionConfigTests(TestCase):
 
     def test_allowlist(self) -> None:
         rc = StandaloneRedactionConfig(self.ruleSetDefault, redactMode=RedactMode.ALLOWLIST)
-        event = {
+        event: Dict[str, Any] = {
             "RequestType": "Create",
             "RequestId": "abcded",
             "ResponseURL": "https://localhost",
@@ -515,7 +515,7 @@ class StandaloneRedactionConfigTests(TestCase):
                 "DoNotDelete": NOT_REDACTED_STRING,
             },
         }
-        revent = rc._redact(event)
+        revent = rc._redact(event)  # type: ignore
 
         self.assertEqual(NOT_REDACTED_STRING, event["ResourceProperties"]["Test"])
         self.assertEqual(NOT_REDACTED_STRING, revent["ResourceProperties"]["Test"])
@@ -532,7 +532,7 @@ class StandaloneRedactionConfigTests(TestCase):
 
     def test_oldproperties(self) -> None:
         rc = StandaloneRedactionConfig(self.ruleSetDefault, redactMode=RedactMode.ALLOWLIST)
-        event = {
+        event: Dict[str, Any] = {
             "RequestType": "Update",
             "RequestId": "abcded",
             "ResponseURL": "https://localhost",
@@ -557,7 +557,7 @@ class StandaloneRedactionConfigTests(TestCase):
                 "DoNotDelete": NOT_REDACTED_STRING,
             },
         }
-        revent = rc._redact(event)
+        revent = rc._redact(event)  # type: ignore
 
         self.assertEqual(NOT_REDACTED_STRING, event["ResourceProperties"]["Test"])
         self.assertEqual(NOT_REDACTED_STRING, revent["ResourceProperties"]["Test"])

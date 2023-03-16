@@ -16,13 +16,13 @@ To install:
 python3 -m pip install accustom
 ```
 
-To create a Lambda Code Bundle in Zip Format with CloudFormation Accustom and dependencies (including `requests`), 
+To create a Lambda Code Bundle in Zip Format with CloudFormation Accustom and dependencies (including `requests`),
 create a directory with only your code in it and run the following. Alternatively you can create a Lambda Layer with
 CloudFormation Accustom and dependencies installed and use that as your base layer for custom resources.  
 
 ```bash
 python3 -m pip install accustom -t .
-zip code.zip * -r 
+zip code.zip * -r
 ```
 
 ## Quickstart
@@ -46,7 +46,7 @@ correctly respond to CloudFormation Custom Resource Requests.
 
 ## The Decorator Patterns
 
-The most important part of this library are the Decorator patterns. These provide Python decorators that can be put 
+The most important part of this library are the Decorator patterns. These provide Python decorators that can be put
 around handler functions, or resource specific functions, that prepare the data for ease of usage. These decorators will
 also handle exceptions for you.
 
@@ -67,8 +67,8 @@ It takes the following options:
   provided that this function is executed in Lambda.
 
 Without a `ResponseObject` the decorator will make the following assumptions:
-- if a Lambda Context is not passed, the function will return `FAILED` 
-- if a dictionary is passed back, this will be used for the Data to be returned to CloudFormation and the function will 
+- if a Lambda Context is not passed, the function will return `FAILED`
+- if a dictionary is passed back, this will be used for the Data to be returned to CloudFormation and the function will
   return `SUCCESS`.
 - if a string is passed back, this will be put in the return attribute `Return` and the function will return `SUCCESS`.
 - if `None` or `True` is passed back, the function will return `SUCCESS`
@@ -76,7 +76,7 @@ Without a `ResponseObject` the decorator will make the following assumptions:
 
 ### `@accustom.rdecorator()`
 
-This decorator, known as the "Resource Decorator" is used when you break the function into different resources, e.g. 
+This decorator, known as the "Resource Decorator" is used when you break the function into different resources, e.g.
 by making a decision based upon which `ResourceType` was passed to the handler and calling a function related to that
 resource.
 
@@ -95,7 +95,7 @@ for your resource and fail if they are not included.
 This decorator is just a combination of `@accustom.decorator()` and `@accustom.rdecorator()`. This allows you to have a
 single, stand-alone resource handler that has some defined properties and can automatically handle delete. The options
 available to it is the combination of both of the options available to the other two Decorators, except for
-`redactProperties` which takes an accustom.StandaloneRedactionConfig object instead of an accustom.RedactionConfig 
+`redactProperties` which takes an accustom.StandaloneRedactionConfig object instead of an accustom.RedactionConfig
 object. For more information on `redactProperties` see "Redacting Confidential Information From Logs".
 
 The other important note about combining these two decorators is that `hideResourceDeleteFailure` becomes redundant if
@@ -110,7 +110,7 @@ or `FAILED`. In practice this function will likely not be used very often outsid
 completeness. For more details look directly at the source code for this function.
 
 ### `ResponseObject`
-The `ResponseObject` allows you to define a message to be sent to CloudFormation. It only has one method, `send()`, 
+The `ResponseObject` allows you to define a message to be sent to CloudFormation. It only has one method, `send()`,
 which uses the `cfnresponse()` function under the hood to fire the event. A response object can be initialised and
 fired with:
 
@@ -149,7 +149,7 @@ import accustom
 
 ## Redacting Confidential Information From `DEBUG` Logs
 If you often pass confidential information like passwords and secrets in properties to Custom Resources, you may want to
-prevent certain properties from being printed to debug logs. To help with this we provide a functionality to either 
+prevent certain properties from being printed to debug logs. To help with this we provide a functionality to either
 blocklist or allowlist Resource Properties based upon provided regular expressions.
 
 To utilise this functionality you must initialise and include a `RedactionConfig`. A `RedactionConfig` consists of some
@@ -204,7 +204,7 @@ All resources will have properties called `Test` and `Example` redacted and repl
 `Custom::Test` resource will also additionally redact properties called `Custom` and those that *start with* `DeleteMe`.
 
 Finally, as `redactResponseURL` is set to `True`, the response URL will not be printed in the debug logs.
-   
+
 ```python3
 from accustom import RedactionRuleSet, RedactionConfig, decorator
 
@@ -215,11 +215,11 @@ ruleSetDefault.add_property('Example')
 ruleSetCustom = RedactionRuleSet('^Custom::Test$')
 ruleSetCustom.add_property('Custom')
 ruleSetCustom.add_property_regex('^DeleteMe.*$')
-    
+
 rc = RedactionConfig(redactResponseURL=True)
 rc.add_rule_set(ruleSetDefault)
 rc.add_rule_set(ruleSetCustom)
-    
+
 @decorator(redactConfig=rc)
 def resource_handler(event, context):
     result = (float(event['ResourceProperties']['Test']) +

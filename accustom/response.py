@@ -10,7 +10,11 @@ This allows you to communicate with CloudFormation
 import json
 import logging
 import sys
+from typing import Any, Dict, Optional
 from urllib.parse import urlparse
+
+from aws_lambda_typing.context import Context
+from aws_lambda_typing.events import CloudFormationCustomResourceEvent
 
 from accustom.constants import RequestType, Status
 from accustom.Exceptions import (
@@ -30,12 +34,12 @@ try:
     import requests
 except ImportError:
     # noinspection PyUnresolvedReferences
-    from botocore.vendored import requests
+    from botocore.vendored import requests  # type: ignore
 
     logger.warning("botocore.vendored version of requests is deprecated. Please include requests in your code bundle.")
 
 
-def is_valid_event(event: dict) -> bool:
+def is_valid_event(event: CloudFormationCustomResourceEvent) -> bool:
     """This function takes in a CloudFormation Request Object and checks for the required fields as per:
     https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/crpg-ref-requests.html
 
@@ -73,7 +77,7 @@ def is_valid_event(event: dict) -> bool:
     return True
 
 
-def collapse_data(response_data: dict):
+def collapse_data(response_data: Dict[str, Any]):
     """This function takes in a dictionary and collapses it into single object keys
 
     For example: it would translate something like this:
@@ -107,12 +111,12 @@ def collapse_data(response_data: dict):
 
 # noinspection PyPep8Naming
 def cfnresponse(
-    event: dict,
+    event: CloudFormationCustomResourceEvent,
     responseStatus: str,
-    responseReason: str = None,
-    responseData: dict = None,
-    physicalResourceId: str = None,
-    context: dict = None,
+    responseReason: Optional[str] = None,
+    responseData: Optional[Dict[str, Any]] = None,
+    physicalResourceId: Optional[str] = None,
+    context: Optional[Context] = None,
     squashPrintResponse: bool = False,
 ):
     """Format and send CloudFormation Custom Resource Objects
@@ -159,9 +163,13 @@ def cfnresponse(
         logger.error(message)
         raise NotValidRequestObjectException(message)
 
-    if physicalResourceId is None and context is None and "PhysicalResourceId" not in event:
+    if physicalResourceId is None and "PhysicalResourceId" in event:
+        physicalResourceId = event["PhysicalResourceId"]  # type: ignore
+    elif physicalResourceId is None and context is not None:
+        physicalResourceId = context.log_stream_name
+    elif physicalResourceId is None and context is None:
         raise NoPhysicalResourceIdException(
-            "Both physicalResourceId and context are None, and there is no" + "physicalResourceId in the event"
+            "Both physicalResourceId and context are None, and there is no physicalResourceId in the event."
         )
 
     if responseStatus != Status.FAILED and responseStatus != Status.SUCCESS:
@@ -186,14 +194,11 @@ def cfnresponse(
 
     responseUrl = event["ResponseURL"]
 
-    if physicalResourceId is None and "PhysicalResourceId" in event:
-        physicalResourceId = event["PhysicalResourceId"]
-
     responseBody = {"Status": responseStatus}
     if responseReason is not None:
         responseBody["Reason"] = responseReason
-    # noinspection PyUnresolvedReferences
-    responseBody["PhysicalResourceId"] = physicalResourceId or context.log_stream_name
+    if physicalResourceId is not None:
+        responseBody["PhysicalResourceId"] = physicalResourceId
     responseBody["StackId"] = event["StackId"]
     responseBody["RequestId"] = event["RequestId"]
     responseBody["LogicalResourceId"] = event["LogicalResourceId"]
@@ -259,9 +264,9 @@ class ResponseObject(object):
     # noinspection PyPep8Naming
     def __init__(
         self,
-        data: dict = None,
-        physicalResourceId: str = None,
-        reason: str = None,
+        data: Optional[Dict[str, Any]] = None,
+        physicalResourceId: Optional[str] = None,
+        reason: Optional[str] = None,
         responseStatus: str = Status.SUCCESS,
         squashPrintResponse: bool = False,
     ):
@@ -302,7 +307,7 @@ class ResponseObject(object):
         self.responseStatus = responseStatus
         self.squashPrintResponse = squashPrintResponse
 
-    def send(self, event: dict, context: dict = None):
+    def send(self, event: CloudFormationCustomResourceEvent, context: Optional[Context] = None):
         """Send this CloudFormation Custom Resource Object
 
         Creates a JSON payload that is sent back to the ResponseURL (pre-signed S3 URL) based upon this response object
