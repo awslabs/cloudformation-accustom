@@ -12,7 +12,7 @@ Resources:
       Handler: timeout.handler
       MemorySize: 256
       Role: !GetAtt FullRole.Arn
-      Runtime: python3.8
+      Runtime: python3.10
       Timeout: 40
 
   BypassFunction:
@@ -22,7 +22,7 @@ Resources:
       Handler: timeout.handler
       MemorySize: 256
       Role: !GetAtt MissingRole.Arn
-      Runtime: python3.8
+      Runtime: python3.10
       Timeout: 40
 
   TimeoutFunction:
@@ -32,7 +32,7 @@ Resources:
       Handler: timeout.handler
       MemorySize: 256
       Role: !GetAtt FullRole.Arn
-      Runtime: python3.8
+      Runtime: python3.10
       Timeout: 20
 
   NoConnectFunction:
@@ -46,7 +46,7 @@ Resources:
       Handler: timeout.handler
       MemorySize: 256
       Role: !GetAtt FullRole.Arn
-      Runtime: python3.8
+      Runtime: python3.10
       Timeout: 40
       VpcConfig:
         SecurityGroupIds:

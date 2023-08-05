@@ -26,6 +26,7 @@ Resources:
   NoConnectExecution:
     Type: Custom::NoConnectFunction
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       ServiceToken: !ImportValue ST-NoConnectFunction
       TestProperty: TestValue

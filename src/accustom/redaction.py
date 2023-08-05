@@ -6,12 +6,12 @@
 This allows you to define a redaction policy for accustom
 """
 
+from __future__ import annotations
+
 import copy
 import logging
 import re
-from typing import Any, Dict, List
-
-from aws_lambda_typing.events import CloudFormationCustomResourceEvent
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, MutableMapping, cast
 
 from accustom.constants import RedactMode
 from accustom.Exceptions import (
@@ -20,6 +20,9 @@ from accustom.Exceptions import (
     NotValidRequestObjectException,
 )
 from accustom.response import is_valid_event
+
+if TYPE_CHECKING:
+    from aws_lambda_typing.events import CloudFormationCustomResourceEvent
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +137,7 @@ class RedactionConfig(object):
         # noinspection PyProtectedMember
         self._redactProperties[ruleSet.resourceRegex] = ruleSet._properties
 
-    def _redact(self, event: CloudFormationCustomResourceEvent) -> Dict[str, Any]:
+    def _redact(self, event: CloudFormationCustomResourceEvent) -> Mapping[str, Any]:
         """Internal Function. Not to be consumed outside accustom Library.
 
         This function will take in an event and return the event redacted as per the redaction config.
@@ -147,7 +150,7 @@ class RedactionConfig(object):
             )
             logger.error(message)
             raise NotValidRequestObjectException(message)
-        ec: Dict[str, Any] = copy.deepcopy(event)  # type: ignore
+        ec: MutableMapping[str, Any] = cast(MutableMapping, copy.deepcopy(event))
         if self.redactMode == RedactMode.ALLOWLIST:
             if "ResourceProperties" in ec:
                 ec["ResourceProperties"] = {}
@@ -170,17 +173,19 @@ class RedactionConfig(object):
                             for m_item in filter(r.match, event["ResourceProperties"]):
                                 ec["ResourceProperties"][m_item] = event["ResourceProperties"][m_item]
                         if "OldResourceProperties" in ec:
-                            for m_item in filter(r.match, event["OldResourceProperties"]):  # type: ignore
-                                ec["OldResourceProperties"][m_item] = event["OldResourceProperties"][  # type: ignore
-                                    m_item
-                                ]
+                            for m_item in filter(
+                                r.match, event["OldResourceProperties"]  # type: ignore[typeddict-item]
+                            ):
+                                ec["OldResourceProperties"][m_item] = event[
+                                    "OldResourceProperties"  # type: ignore[typeddict-item]
+                                ][m_item]
         if self.redactMode == RedactMode.ALLOWLIST:
             if "ResourceProperties" in ec:
                 for key, value in event["ResourceProperties"].items():
                     if key not in ec["ResourceProperties"]:
                         ec["ResourceProperties"][key] = REDACTED_STRING
             if "OldResourceProperties" in ec:
-                for key, value in event["OldResourceProperties"].items():  # type: ignore
+                for key, value in event["OldResourceProperties"].items():  # type: ignore[typeddict-item]
                     if key not in ec["OldResourceProperties"]:
                         ec["OldResourceProperties"][key] = REDACTED_STRING
 

@@ -6,15 +6,15 @@
 This allows you to communicate with CloudFormation
 
 """
+from __future__ import annotations
 
 import json
 import logging
 import sys
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 from urllib.parse import urlparse
 
-from aws_lambda_typing.context import Context
-from aws_lambda_typing.events import CloudFormationCustomResourceEvent
+import requests
 
 from accustom.constants import RequestType, Status
 from accustom.Exceptions import (
@@ -26,17 +26,12 @@ from accustom.Exceptions import (
     ResponseTooLongException,
 )
 
+if TYPE_CHECKING:
+    from aws_lambda_typing.context import Context
+    from aws_lambda_typing.events import CloudFormationCustomResourceEvent
+
 logger = logging.getLogger(__name__)
 CUSTOM_RESOURCE_SIZE_LIMIT = 4096
-
-# Import Requests
-try:
-    import requests
-except ImportError:
-    # noinspection PyUnresolvedReferences
-    from botocore.vendored import requests  # type: ignore
-
-    logger.warning("botocore.vendored version of requests is deprecated. Please include requests in your code bundle.")
 
 
 def is_valid_event(event: CloudFormationCustomResourceEvent) -> bool:
@@ -164,7 +159,7 @@ def cfnresponse(
         raise NotValidRequestObjectException(message)
 
     if physicalResourceId is None and "PhysicalResourceId" in event:
-        physicalResourceId = event["PhysicalResourceId"]  # type: ignore
+        physicalResourceId = event["PhysicalResourceId"]  # type: ignore[typeddict-item]
     elif physicalResourceId is None and context is not None:
         physicalResourceId = context.log_stream_name
     elif physicalResourceId is None and context is None:
