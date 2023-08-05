@@ -6,16 +6,15 @@
 This includes two decorators, one for the handler function, and one to apply to any resource handling
 functions.
 """
+from __future__ import annotations
 
 import copy
 import json
 import logging
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypeVar, Union
 from uuid import uuid4
 
-from aws_lambda_typing.context import Context
-from aws_lambda_typing.events import CloudFormationCustomResourceEvent
 from boto3 import client
 from botocore import exceptions as boto_exceptions
 from botocore.client import Config
@@ -32,6 +31,10 @@ from accustom.Exceptions import (
 )
 from accustom.redaction import RedactionConfig, StandaloneRedactionConfig
 from accustom.response import ResponseObject, is_valid_event
+
+if TYPE_CHECKING:
+    from aws_lambda_typing.context import Context
+    from aws_lambda_typing.events import CloudFormationCustomResourceEvent
 
 logger = logging.getLogger(__name__)
 
@@ -385,13 +388,15 @@ def rdecorator(
 
             # Set the Physical Resource ID to a randomly generated UUID if it is not present
             if genUUID and "PhysicalResourceId" not in event:
-                event["PhysicalResourceId"] = str(uuid4())  # type: ignore
-                logger.info(f'Set PhysicalResourceId to {event["PhysicalResourceId"]}')  # type: ignore
+                event["PhysicalResourceId"] = str(uuid4())  # type: ignore[typeddict-unknown-key]
+                logger.info(f'Set PhysicalResourceId to {event["PhysicalResourceId"]}')  # type: ignore[typeddict-item]
 
             # Handle Delete when decoratorHandleDelete is set to True
             if decoratorHandleDelete and event["RequestType"] == RequestType.DELETE:
                 logger.info(f"Request type {RequestType.DELETE} detected, returning success without calling function")
-                return ResponseObject(physicalResourceId=event["PhysicalResourceId"])  # type: ignore
+                return ResponseObject(
+                    physicalResourceId=event["PhysicalResourceId"]  # type: ignore[typeddict-item,return-value]
+                )
 
             # Validate important properties exist except on Delete
             if (
@@ -406,7 +411,7 @@ def rdecorator(
                         return ResponseObject(
                             reason=err_msg,
                             responseStatus=Status.FAILED,
-                            physicalResourceId=event.get("PhysicalResourceId"),  # type: ignore
+                            physicalResourceId=event.get("PhysicalResourceId"),  # type: ignore[arg-type, return-value]
                         )
 
             # If a list or tuple was not provided then log a warning
@@ -483,10 +488,8 @@ def sdecorator(
         redactConfig = None
 
     # noinspection PyMissingOrEmptyDocstring
-    def standalone_decorator_inner(
-        func: Callable[Concatenate[CloudFormationCustomResourceEvent, Context, _P], _T]
-    ) -> Union[Dict[str, Any], str]:
-        # noinspection PyMissingOrEmptyDocstpdring
+    def standalone_decorator_inner(func: Callable[Concatenate[CloudFormationCustomResourceEvent, Context, _P], _T]):
+        # noinspection PyMissingOrEmptyDocstring
         @wraps(func)
         @decorator(
             enforceUseOfClass=enforceUseOfClass,

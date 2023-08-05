@@ -30,8 +30,9 @@ class PreparationTests(TestCase):
 
 class TimeoutTests(TestCase):
     # noinspection PyMissingOrEmptyDocstring
+    stack_name: str
+
     def setUp(self) -> None:
-        stack_name: str
         with open(EXECUTED_FILE, "r") as f:
             self.stack_name = f.read().strip()
         self.stack = cfn_resource.Stack(self.stack_name)

@@ -3,18 +3,22 @@
 """
 Unit Test Library for the Redaction Processes
 """
+from __future__ import annotations
+
 import json
 import logging
 from pathlib import Path
-from typing import List
+from typing import TYPE_CHECKING, List
 from unittest import TestCase
 from unittest import main as ut_main
 
 import boto3
-from mypy_boto3_cloudformation.service_resource import CloudFormationServiceResource, Stack
-from mypy_boto3_logs.client import CloudWatchLogsClient
-from mypy_boto3_logs.paginator import FilterLogEventsPaginator
-from mypy_boto3_logs.type_defs import FilterLogEventsResponseTypeDef
+
+if TYPE_CHECKING:
+    from mypy_boto3_cloudformation.service_resource import CloudFormationServiceResource, Stack
+    from mypy_boto3_logs.client import CloudWatchLogsClient
+    from mypy_boto3_logs.paginator import FilterLogEventsPaginator
+    from mypy_boto3_logs.type_defs import FilterLogEventsResponseTypeDef
 
 logging.getLogger().setLevel(logging.DEBUG)
 
@@ -43,7 +47,6 @@ class RedactTestCase(TestCase):
     # noinspection PyMissingOrEmptyDocstring
     @classmethod
     def setUpClass(cls) -> None:
-        stack_name: str
         with open(EXECUTED_FILE, "r") as f:
             cls.stack_name = f.read().strip()
         cls.stack = cfn_resource.Stack(cls.stack_name)

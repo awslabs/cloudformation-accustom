@@ -1,4 +1,8 @@
 repos:
+- repo: https://github.com/commitizen-tools/commitizen
+  rev: 3.6.0
+  hooks:
+    - id: commitizen
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.4.0
   hooks:
@@ -24,25 +28,42 @@ repos:
       args: [--branch, stable]
     - id: trailing-whitespace
       args: [--markdown-linebreak-ext=md]
+- repo: https://github.com/pre-commit/pygrep-hooks.git
+  rev: v1.10.0
+  hooks:
+    - id: python-check-blanket-noqa
+    - id: python-check-blanket-type-ignore
+      exclude: '^tests/'
+      # Excluding test files from this check
+    - id: python-no-eval
+    - id: python-no-log-warn
+    - id: python-use-type-annotations
+    - id: text-unicode-replacement-char
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.1.1
+  rev: v1.4.1
   hooks:
     - id: mypy
       language: system
       # Need various MyPy plugins, thus using system python. Run "pdm install --dev --group lint" first
 - repo: https://github.com/PyCQA/isort
-  rev: 5.11.5
+  rev: 5.12.0
   hooks:
     - id: isort
       args: [--check]
 - repo: https://github.com/psf/black
-  rev: 23.1.0
+  rev: 23.7.0
   hooks:
     - id: black
       args: [--check]
 - repo: https://github.com/PyCQA/flake8
-  rev: 5.0.4
+  rev: 6.1.0
   hooks:
     - id: flake8
       language: system
       # Need various flake8 plugins, thus using system python. Run "pdm install --dev --group lint" first
+- repo: https://github.com/aws-cloudformation/cfn-lint.git
+  rev: v0.79.6
+  hooks:
+    - id: cfn-lint
+      files: ^tests/int/.*\.yaml$
+      args: [--ignore-checks, W3002]
